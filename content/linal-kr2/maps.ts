@@ -153,7 +153,9 @@ $$C_{\mathcal A\leftarrow\mathcal B}=C_{\mathcal B\leftarrow\mathcal A}^{-1},\qq
       uses: ['map-matrix'],
       notes: md`Самый частый случай: $\mathbb V=\mathbb F^n$, $\mathcal E$ — стандартный базис. Тогда $C_{\mathcal E\leftarrow\mathcal F}$ — это просто векторы $\mathbf f_i$, записанные столбцами, а $C_{\mathcal F\leftarrow\mathcal E}=C_{\mathcal E\leftarrow\mathcal F}^{-1}$.
 
-Пример: $\mathcal A=(1,t,t^2)$, $\mathcal B=(1,t-1,(t-1)^2)$: $t=1+(t-1)$, $t^2=1+2(t-1)+(t-1)^2$, поэтому $C_{\mathcal B\leftarrow\mathcal A}=\begin{pmatrix}1&1&1\\0&1&2\\0&0&1\end{pmatrix}$.`,
+Пример: $\mathcal A=(1,t,t^2)$, $\mathcal B=(1,t-1,(t-1)^2)$: $t=1+(t-1)$, $t^2=1+2(t-1)+(t-1)^2$, поэтому $C_{\mathcal B\leftarrow\mathcal A}=\begin{pmatrix}1&1&1\\0&1&2\\0&0&1\end{pmatrix}$.
+
+Для многочленов обратную матрицу часто можно не считать. Если каждый вектор базиса обнуляется во всех выбранных точках, кроме одной, координаты любого $p$ читаются по его значениям в этих точках. Это и есть столбцы матрицы перехода в такой базис.`,
       pitfalls: [
         md`Направление стрелки: $C_{\mathcal B\leftarrow\mathcal A}$ принимает координаты в $\mathcal A$ и выдаёт в $\mathcal B$. Векторы, записанные столбцами, дают переход **из** их базиса **в** стандартный.`,
         'Матрица замены базиса всегда обратима (переход назад существует).',

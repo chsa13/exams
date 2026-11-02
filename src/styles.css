@@ -69,6 +69,36 @@
   }
 }
 
+/* Тема, выбранная вручную. Значения те же, что в блоке выше (проверяет тест). */
+:root[data-theme='dark'] {
+  --bg: #151514;
+  --surface: #1e1e1c;
+  --surface-2: #272724;
+  --text: #ecebe7;
+  --text-2: #c6c4bc;
+  --muted: #a19e95;
+  --border: rgb(236 235 231 / 0.1);
+  --border-strong: rgb(236 235 231 / 0.28);
+  --accent: #ff6a43;
+  --accent-hover: #ff8463;
+  --accent-soft: #3a2119;
+  --accent-ink: #ff8463;
+  --on-accent: #1f0d07;
+  --on-solid: #151514;
+  --black-star: #ecebe7;
+  --blue-star: #6f9dff;
+  --known: #4cc27c;
+  --known-solid: #4cc27c;
+  --shaky: #f0b73a;
+  --weak: #ff6a4d;
+  --new: #55534d;
+  --heat: #2f8f5a;
+  --ok-bg: #18301f;
+  --bad-bg: #3a1d17;
+  --shadow: none;
+  color-scheme: dark;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -104,6 +134,7 @@ a:hover {
 .btn:hover,
 .exam-card:hover,
 .topic-card:hover,
+.ready-row:hover,
 .cell:hover,
 .nav a:hover {
   text-decoration: none;
@@ -304,7 +335,24 @@ select:hover,
   padding: 0;
   color: var(--text);
 }
-.brand-back {
+/* Тихая кнопка со значком, не спорит с названием и переключателем уровня. */
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  min-height: 36px;
+  padding: 0;
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+.icon-btn:hover {
+  background: var(--surface-2);
+  border-color: transparent;
+  color: var(--text);
+}
+.brand-home {
   flex: none;
   display: grid;
   place-items: center;
@@ -315,7 +363,7 @@ select:hover,
   color: var(--muted);
   transition: background-color 140ms var(--ease), color 140ms var(--ease);
 }
-.brand-back:hover {
+.brand-home:hover {
   background: var(--surface-2);
   color: var(--text);
 }
@@ -498,9 +546,33 @@ select:hover,
   border-top: 1px solid var(--border);
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 24px;
-  font-size: 15px;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px 32px;
+  font-size: 14px;
   line-height: 20px;
+}
+.foot > .muted {
+  flex: 1 1 320px;
+  max-width: 640px;
+}
+.foot-contact {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+.foot-contact a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-2);
+  font-weight: 500;
+  transition: color 140ms var(--ease);
+}
+.foot-contact a:hover {
+  color: var(--accent);
+  text-decoration: none;
 }
 
 /* --- level switch, tabs & badges: один вид переключателя на весь сайт --- */
@@ -611,14 +683,14 @@ select:hover,
   margin: 8px 0 0;
 }
 .hero-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
   margin-top: 24px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
 .stat {
+  flex: 1;
   padding: 16px 20px;
   min-width: 0;
 }
@@ -830,6 +902,41 @@ select:hover,
 .cell-empty {
   background: transparent;
 }
+/* Телефонная версия карты готовности. */
+.ready-list {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.ready-row {
+  display: block;
+  padding: 12px 16px;
+  color: var(--text);
+  transition: background-color 140ms var(--ease);
+}
+.ready-row + .ready-row {
+  border-top: 1px solid var(--border);
+}
+.ready-row:active {
+  background: var(--surface-2);
+}
+.ready-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 15px;
+  line-height: 20px;
+}
+.ready-num {
+  flex: none;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.ready-row .pbar {
+  margin: 8px 0 0;
+}
 .panel {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -967,9 +1074,15 @@ select:hover,
 }
 .pager {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 16px;
+  gap: 8px 16px;
   margin-top: 32px;
+}
+.pager > * {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 .md p {
   margin: 8px 0;
@@ -1002,11 +1115,16 @@ select:hover,
 .md th {
   font-weight: 500;
 }
-.katex-display {
+/* Формула отдельной строкой. Переносится сама; прокрутка — только если перенести негде. */
+.math-block {
+  display: block;
   overflow-x: auto;
   overflow-y: hidden;
   padding: 4px 0;
   margin: 8px 0;
+  text-align: center;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
 .katex {
   font-size: 1.07em;
@@ -1105,6 +1223,7 @@ select:hover,
 }
 /* Карточка вопроса — как лист билета: крупный вопрос и спокойное поле вокруг. */
 .card {
+  scroll-margin-top: calc(var(--top-h) + 8px);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -1161,13 +1280,14 @@ select:hover,
 }
 .grade {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin: 8px 0;
 }
 .g {
   justify-content: center;
   min-height: 44px;
+  white-space: nowrap;
 }
 .g::before {
   content: '';
@@ -1291,6 +1411,16 @@ select:hover,
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   margin-bottom: 16px;
+}
+/* Чёрная ✱ сливается с фоном таймера, а на красном фоне — и красная. */
+.timer .star-black {
+  --star: var(--bg);
+}
+.timer-warn .star-black {
+  --star: var(--on-shaky);
+}
+.timer-over .star {
+  --star: var(--on-solid);
 }
 .timer-warn {
   background: var(--shaky);
@@ -1419,12 +1549,21 @@ p.timer-over {
     font-size: 20px;
     line-height: 28px;
   }
-  /* Длинная формула не переносится: прокручиваем её внутри блока, а не всю страницу. */
-  .task,
-  .tq,
-  .unit,
-  .card {
+  /* Строчную формулу без знаков переноса прокручиваем внутри абзаца, а не всю страницу. */
+  .md p,
+  .md li {
     overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  /* Клавиш на телефоне нет, а цифры съедают ширину кнопок. */
+  kbd {
+    display: none;
+  }
+  .g {
+    padding: 7px 4px;
+    gap: 6px;
   }
   .exam-card {
     padding: 16px;
@@ -1473,19 +1612,11 @@ p.timer-over {
     font-size: 20px;
     line-height: 28px;
   }
-  /* Название темы — отдельной строкой над ячейками: так ему не тесно. */
-  .gt-row {
-    grid-template-columns: repeat(var(--cols, 3), 1fr);
-  }
-  .gt-head > div:first-child {
+  .grid-table {
     display: none;
   }
-  .gt-topic {
-    grid-column: 1 / -1;
-    padding: 8px 12px 4px;
-  }
-  .cell {
-    min-height: 32px;
+  .ready-list {
+    display: block;
   }
 }
 
@@ -1538,7 +1669,8 @@ p.timer-over {
   .top-inner {
     flex-wrap: nowrap;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 8px 4px;
   }
   .top-inner .seg {
     grid-row: 2;
@@ -1553,7 +1685,8 @@ p.timer-over {
   .timer {
     top: 8px;
   }
-  .unit {
+  .unit,
+  .card {
     scroll-margin-top: 12px;
   }
 }

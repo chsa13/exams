@@ -6,6 +6,7 @@ import { catalogOf, examById } from './engine/catalog';
 import { ExamProvider, useCat, usePath } from './exam';
 import { ExamIcon } from './ui/ExamIcon';
 import { ExamStars, LevelSwitch } from './ui/LevelSwitch';
+import { ThemeToggle } from './ui/ThemeToggle';
 import { HubPage } from './pages/HubPage';
 import { HomePage } from './pages/HomePage';
 import { TopicsPage, TopicPage } from './pages/TopicsPage';
@@ -20,9 +21,12 @@ import { SettingsPage } from './pages/SettingsPage';
 export const SITE_TITLE = 'Подготовка к экзаменам ЦУ';
 
 function ScrollTop() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  // Адрес сменился, в том числе только его часть после «?» — это другой экран, открываем его сверху.
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, [pathname, search]);
+  useEffect(() => {
     // заголовок страницы выставляют эффекты раздела, поэтому читаем его чуть позже
     const t = setTimeout(() => trackPage(pathname, document.title), 0);
     return () => clearTimeout(t);
@@ -78,6 +82,7 @@ function HubLayout() {
             </span>
             {SITE_TITLE}
           </NavLink>
+          <ThemeToggle />
         </div>
       </header>
       <main className="main">
@@ -145,9 +150,10 @@ function ExamShell() {
       <header className="top" ref={headerRef}>
         <div className="top-inner">
           <div className="brand-row">
-            <NavLink to="/" className="brand-back" title="Все экзамены" aria-label="Все экзамены">
+            <NavLink to="/" className="brand-home" title="Все экзамены" aria-label="Все экзамены">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="m15 18-6-6 6-6" />
+                <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+                <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
               </svg>
             </NavLink>
             <NavLink to={p('/')} className="brand">
@@ -156,6 +162,7 @@ function ExamShell() {
             </NavLink>
           </div>
           {exam.levels && <LevelSwitch />}
+          <ThemeToggle />
           <button className="nav-toggle" aria-label="Разделы" aria-expanded={menuOpen} aria-controls="exam-nav" onClick={() => setMenuOpen(!menuOpen)}>
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true">
               <path d={menuOpen ? 'M6 6l12 12M18 6 6 18' : 'M4 7h16M4 12h16M4 17h16'} />
@@ -196,6 +203,15 @@ function Footer() {
     <footer className="foot">
       <span className="muted">
         Неофициальный конспект от студентов по программе курсов, не заменяет материалы курса. Прогресс хранится только в этом браузере, отдельно для каждого экзамена.
+      </span>
+      <span className="foot-contact">
+        <a href="https://t.me/chsa13" target="_blank" rel="noopener noreferrer" aria-label="Telegram разработчика: @chsa13" title="Связь с разработчиком">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" />
+            <path d="m21.854 2.147-10.94 10.939" />
+          </svg>
+          @chsa13
+        </a>
       </span>
     </footer>
   );

@@ -20,6 +20,9 @@ function fromOldHash() {
 fromOldHash();
 window.addEventListener('hashchange', fromOldHash);
 
+// Прокруткой управляет сайт (ScrollTop в App.tsx): браузер не должен возвращать старую позицию после перезагрузки.
+history.scrollRestoration = 'manual';
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

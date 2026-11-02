@@ -15,7 +15,11 @@ export function renderMd(src: string, inline = false): string {
   const stash = (tex: string, display: boolean) => {
     let html: string;
     try {
-      html = katex.renderToString(tex.trim(), { displayMode: display, throwOnError: false });
+      // Формула в режиме display у KaTeX не переносится и на телефоне обрезается. Поэтому рисуем её строчной,
+      // но в крупном стиле: выглядит так же, а узкий экран переносит её по знакам = > ⟺.
+      html = display
+        ? `<span class="math-block">${katex.renderToString(`\\displaystyle ${tex.trim()}`, { throwOnError: false })}</span>`
+        : katex.renderToString(tex.trim(), { throwOnError: false });
     } catch {
       html = `<code>${tex}</code>`;
     }

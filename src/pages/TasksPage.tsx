@@ -18,6 +18,7 @@ export function TasksPage() {
   const [sp, setSp] = useSearchParams();
   const type = (sp.get('type') ?? '') as TaskType | '';
   const topic = sp.get('topic') ?? '';
+  const skill = sp.get('skill') ?? '';
   const set = (k: string, v: string) => {
     const n = new URLSearchParams(sp);
     if (v) n.set(k, v);
@@ -27,11 +28,11 @@ export function TasksPage() {
 
   const list = useMemo(() => {
     const s = store.get();
-    const pool = cat.visibleTasks(s.mode).filter((t) => (!type || t.type === type) && (!topic || t.topic === topic));
+    const pool = cat.visibleTasks(s.mode).filter((t) => (!type || t.type === type) && (!topic || t.topic === topic) && (!skill || t.skill === skill));
     return orderByPriority(pool, taskKey, s);
     // порядок фиксируем на фильтр, чтобы список не прыгал после оценки
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, topic, st.mode, cat]);
+  }, [type, topic, skill, st.mode, cat]);
   const types = (Object.keys(TASK_TYPE_LABEL) as TaskType[]).filter((x) => cat.tasks.some((t) => t.type === x));
 
   return (
@@ -55,6 +56,16 @@ export function TasksPage() {
             </option>
           ))}
         </select>
+        {cat.exam.skills && (
+          <select value={skill} onChange={(e) => set('skill', e.target.value)}>
+            <option value="">Все навыки</option>
+            {cat.exam.skills.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.title}
+              </option>
+            ))}
+          </select>
+        )}
         <span className="muted small">{count(list.length, 'задача', 'задачи', 'задач')}</span>
       </div>
       {list.map((t, i) => (

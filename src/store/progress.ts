@@ -43,6 +43,19 @@ export function storageKey(examId: string, slot: Slot): string {
 
 const empty = (): State => ({ version: 1, mode: 'basic', items: {}, mocks: [] });
 
+const isPlainObject = (v: unknown): v is object => !!v && typeof v === 'object' && !Array.isArray(v);
+
+/** Приводит сохранённые данные к рабочему виду: испорченное поле не должно ломать страницы экзамена. */
+function normalize(parsed: State): State {
+  return {
+    ...empty(),
+    ...parsed,
+    mode: parsed.mode === 'all' ? 'all' : 'basic',
+    items: isPlainObject(parsed.items) ? parsed.items : {},
+    mocks: Array.isArray(parsed.mocks) ? parsed.mocks.filter(isPlainObject) : [],
+  };
+}
+
 export class ProgressStore {
   private state: State;
   private listeners = new Set<() => void>();
@@ -68,7 +81,7 @@ export class ProgressStore {
       if (!raw) return empty();
       const parsed = JSON.parse(raw) as State;
       if (parsed.version !== 1) return empty();
-      return { ...empty(), ...parsed };
+      return normalize(parsed);
     } catch {
       return empty();
     }
@@ -120,12 +133,11 @@ export class ProgressStore {
   /** ownKey проверяет, что отметка относится к этому экзамену: файл другого экзамена не должен затереть прогресс. */
   importJson(json: string, ownKey?: (key: string) => boolean) {
     const parsed = JSON.parse(json) as State | null;
-    if (parsed?.version !== 1 || !parsed.items || typeof parsed.items !== 'object' || Array.isArray(parsed.items)) {
-      throw new Error('Неверный файл прогресса');
-    }
+    const badMocks = parsed?.mocks !== undefined && !Array.isArray(parsed?.mocks);
+    if (parsed?.version !== 1 || !isPlainObject(parsed.items) || badMocks) throw new Error('Неверный файл прогресса');
     const keys = Object.keys(parsed.items);
     if (ownKey && keys.length && !keys.some(ownKey)) throw new Error('Это файл другого экзамена, прогресс не изменён');
-    this.set({ ...empty(), ...parsed });
+    this.set(normalize(parsed));
   }
 
   reset() {

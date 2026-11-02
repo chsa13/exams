@@ -5,6 +5,7 @@ import { readiness, score, taskKey, type Readiness } from '../engine/catalog';
 import { useCat, usePath } from '../exam';
 import { useProgress } from '../store/progress';
 import { Star } from '../ui/LevelSwitch';
+import { ProgressBar } from '../ui/ProgressBar';
 import { Ring } from '../ui/Ring';
 import { Countdown } from './HubPage';
 import { count } from '../plural';
@@ -96,7 +97,6 @@ export function HomePage() {
 
       <section>
         <h2>Карта готовности</h2>
-        <p className="muted small">Цвет — доля «знаю» (частично = половина). Нажми на тему, чтобы открыть справочник.</p>
         <div className="grid-table" style={{ ['--cols' as string]: kinds.length + (exam.features.includes('tasks') ? 1 : 0) }}>
           <div className="gt-row gt-head">
             <div>Тема</div>
@@ -121,6 +121,22 @@ export function HomePage() {
                 ))}
                 {exam.features.includes('tasks') && <Cell keys={topicTasks.map(taskKey)} to={p(`/tasks?topic=${t.id}`)} />}
               </div>
+            );
+          })}
+        </div>
+        {/* На телефоне таблица не помещается: там каждая тема — название, процент и одна шкала. */}
+        <div className="ready-list">
+          {cat.visibleTopics(st.mode).map((t) => {
+            const taskKeys = exam.features.includes('tasks') ? cat.visibleTasks(st.mode).filter((x) => x.topic === t.id).map(taskKey) : [];
+            const r = readiness([...fs.filter((f) => f.topic.id === t.id).map((f) => f.key), ...taskKeys], st);
+            return (
+              <Link key={t.id} to={p(`/topic/${t.id}`)} className="ready-row">
+                <span className="ready-head">
+                  <span>{t.title}</span>
+                  <span className="ready-num">{Math.round(score(r) * 100)}%</span>
+                </span>
+                <ProgressBar r={r} legend={false} />
+              </Link>
             );
           })}
         </div>

@@ -88,6 +88,11 @@ export function MockPage() {
   const [scores, setScores] = useState<Record<string, number>>(restored?.s.scores ?? {});
   const now = useNow(stage === 'prep' || (stage === 'answer' && ANSWER_MIN !== null));
 
+  // Этапы билета сменяются без смены адреса: каждый новый этап открываем сверху.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [stage]);
+
   useEffect(() => {
     if (stage === 'intro') {
       persist(exam.id, null);
@@ -139,6 +144,7 @@ export function MockPage() {
   };
 
   if (stage === 'intro' && spec.kind === 'test') {
+    const slotPoints = spec.slots.every((s) => s.points !== undefined);
     return (
       <div className="page">
         <h1>{spec.title}</h1>
@@ -150,6 +156,7 @@ export function MockPage() {
             <tr>
               <th>№</th>
               <th>Что будет</th>
+              {slotPoints && <th>Баллы</th>}
             </tr>
           </thead>
           <tbody>
@@ -157,10 +164,12 @@ export function MockPage() {
               <tr key={i}>
                 <td>{i + 1}</td>
                 <td>{s.label}</td>
+                {slotPoints && <td>{fmt(s.points!)}</td>}
               </tr>
             ))}
           </tbody>
         </table>
+        <ScoringNote rules={rules} />
         <ol>
           <li>
             <b>Работа — {spec.minutes} минут.</b> Решай на бумаге, без материалов и калькулятора, с обоснованиями.
@@ -286,6 +295,7 @@ export function MockPage() {
   }
 
   const t = totals(qs, scores, rules);
+  const lost = qs.filter((q) => q.parts.some((p, i) => (scores[`${q.n}:${i}`] ?? 0) < p.max));
   return (
     <div className="page">
       <h1>Результат</h1>
@@ -306,19 +316,23 @@ export function MockPage() {
         )}
       </div>
       <GateStatus qs={qs} scores={scores} rules={rules} />
-      <h3>Где потерял баллы</h3>
-      <ul>
-        {qs
-          .filter((q) => q.parts.some((p, i) => (scores[`${q.n}:${i}`] ?? 0) < p.max))
-          .map((q) => (
-            <li key={q.n}>
-              {q.n}. {q.facet ? q.facet.unit.title : q.label ?? <Md text={q.task!.prompt.split('\n')[0]} inline />}{' '}
-              <span className="muted small">
-                ({q.parts.map((p, i) => `${fmt(scores[`${q.n}:${i}`] ?? 0)}/${fmt(p.max)}`).join(' + ')})
-              </span>
-            </li>
-          ))}
-      </ul>
+      {lost.length > 0 ? (
+        <>
+          <h3>Где потерял баллы</h3>
+          <ul>
+            {lost.map((q) => (
+              <li key={q.n}>
+                {q.n}. {q.facet ? q.facet.unit.title : q.label ?? <Md text={q.task!.prompt.split('\n')[0]} inline />}{' '}
+                <span className="muted small">
+                  ({q.parts.map((p, i) => `${fmt(scores[`${q.n}:${i}`] ?? 0)}/${fmt(p.max)}`).join(' + ')})
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="muted">Все баллы набраны.</p>
+      )}
       <div className="row">
         <button className="primary" onClick={() => setStage('intro')}>
           Ещё раз
@@ -347,7 +361,7 @@ function ScoringNote({ rules }: { rules: Scoring }) {
           Чтобы перейти к доказательствам, нужно сдать не меньше <b>{rules.theoryGate}</b> вопросов по теории — иначе коллоквиум на этом заканчивается.{' '}
         </>
       )}
-      {rules.scoreCap !== undefined && <>Максимальная оценка — {fmt(rules.scoreCap)}, лишние баллы билета — запас.</>}
+      {rules.scoreCap !== undefined && <>Максимальная оценка — {fmt(rules.scoreCap)}, лишние баллы — запас.</>}
     </p>
   );
 }
@@ -383,7 +397,7 @@ function ticketBlocks(layout: TicketLayout | undefined, mode: Mode): [string, Re
     ['Определения', 3, 'по 0,5'],
     ['Формулировки', all ? <>3 + 1 {black}</> : 3, 'по 0,5'],
     ['Доказательства', all ? <>2 + 1 {black}</> : 2, all ? <>0,5 + 2 ({black}: 0,5 + 3)</> : '0,5 + 2'],
-    ['Задачи', all ? <>3 + 1 {black}</> : 3, '1–1,5'],
+    ['Задачи', all ? <>3 + 1 {black}</> : 3, all ? '1–1,5' : 'по 1'],
   ];
 }
 

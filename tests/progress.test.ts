@@ -10,6 +10,13 @@ const OLD_FILE = JSON.stringify({
 });
 const own = (k: string) => k === 'squeeze-theorem:proof' || k === 'task:limit-1';
 
+// В тестах браузера нет, а восстановление читает localStorage.
+const memory = new Map<string, string>();
+globalThis.localStorage = {
+  getItem: (k: string) => memory.get(k) ?? null,
+  setItem: (k: string, v: string) => void memory.set(k, v),
+} as unknown as Storage;
+
 describe('progress export and import', () => {
   it('loads a file from an earlier version and exports it back unchanged', () => {
     const s = new ProgressStore('test');
@@ -24,11 +31,16 @@ describe('progress export and import', () => {
     expect(s.get().mocks).toEqual([]);
   });
 
-  it.each(['null', '[]', '{}', '{"version":2,"items":{}}', '{"version":1,"items":null}', '{"version":1,"items":[]}'])('rejects %s and keeps progress', (bad) => {
+  it.each(['null', '[]', '{}', '{"version":2,"items":{}}', '{"version":1,"items":null}', '{"version":1,"items":[]}', '{"version":1,"items":{},"mocks":5}', '{"version":1,"items":{},"mocks":null}'])('rejects %s and keeps progress', (bad) => {
     const s = new ProgressStore('test');
     s.importJson(OLD_FILE);
     expect(() => s.importJson(bad)).toThrow('Неверный файл прогресса');
     expect(Object.keys(s.get().items)).toHaveLength(2);
+  });
+
+  it('repairs a broken saved state instead of crashing', () => {
+    localStorage.setItem('exams:broken:progress:v1', '{"version":1,"mode":"zzz","items":null,"mocks":[null,5]}');
+    expect(new ProgressStore('broken').get()).toEqual({ version: 1, mode: 'basic', items: {}, mocks: [] });
   });
 
   it('rejects a file of another exam and keeps progress', () => {

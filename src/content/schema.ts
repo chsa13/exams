@@ -65,6 +65,8 @@ export type TaskType = 'quantifiers' | 'true-false' | 'prove' | 'compute' | 'con
 export interface Task {
   id: string;
   topic: string;
+  /** Навык из списка «что нужно уметь» (Exam.skills). Без него задача — для понимания, в пробную КР не идёт. */
+  skill?: string;
   /** В какие шкалы идут баллы (как цвет звёздочек в билете). */
   scales: Scale[];
   type: TaskType;
@@ -78,11 +80,21 @@ export interface Task {
 /** Разделы сайта, которые есть у экзамена. */
 export type Feature = 'topics' | 'cards' | 'proofs' | 'quant' | 'tasks' | 'mock';
 
-/** Позиция пробной контрольной: одна задача из подходящих по теме и типу. */
+/** Что лектор просит уметь на контрольной: отдельный фильтр в банке задач. */
+export interface Skill {
+  /** Значение фильтра в адресе: /<id>/tasks?skill=<id>. */
+  id: string;
+  title: string;
+}
+
+/** Позиция пробной контрольной: одна задача из подходящих по теме, навыку и типу. */
 export interface MockSlot {
   label: string;
   topics?: string[];
+  skills?: string[];
   types?: TaskType[];
+  /** Баллы позиции: столько же стоит каждая подходящая задача (сверяет тест). */
+  points?: number;
 }
 
 /**
@@ -111,7 +123,14 @@ export interface TicketLayout {
  */
 export type MockSpec =
   | { kind: 'ticket'; title: string; prepMin: number; answerMin: number; layout?: TicketLayout }
-  | { kind: 'test'; title: string; minutes: number; slots: MockSlot[] };
+  | {
+      kind: 'test';
+      title: string;
+      minutes: number;
+      slots: MockSlot[];
+      /** Максимальная оценка, если баллов в работе больше (лишние — запас). */
+      scoreCap?: number;
+    };
 
 /** Экзамен (коллоквиум, контрольная…) — всё, что нужно сайту, чтобы собрать для него раздел. */
 export interface Exam {
@@ -143,6 +162,8 @@ export interface Exam {
   mock: MockSpec;
   /** Пояснение над банком задач. */
   tasksNote: string;
+  /** Что лектор просит уметь на контрольной. */
+  skills?: Skill[];
   /**
    * Есть ли в билете вопросы «только формулировка». false — формулировка теоремы спрашивается только вместе
    * с доказательством: отдельной грани «формулировка» у теорем нет (текст формулировки остаётся в ответе).

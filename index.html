@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
     <title>Подготовка к экзаменам ЦУ</title>
+    <!-- Выбранная тема ставится до отрисовки, иначе страница мигнёт другой темой. Логика — src/ui/ThemeToggle.tsx. -->
+    <script>
+      try {
+        var theme = localStorage.getItem('exams:theme');
+        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    </script>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>∑</text></svg>" />
     <!-- Анонимная статистика (Umami, без cookies). Просмотры шлёт src/analytics.ts; на localhost не работает. -->
     <script

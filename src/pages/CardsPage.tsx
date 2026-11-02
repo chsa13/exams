@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { KIND_LABEL, type Kind } from '../content/schema';
 import { orderByPriority, type Catalog, type Facet } from '../engine/catalog';
@@ -11,6 +11,7 @@ import { Md } from '../ui/Md';
 import { Grade } from '../ui/Grade';
 import { LevelMark, StatusDot } from '../ui/LevelSwitch';
 import { count } from '../plural';
+import { revealTop } from '../ui/scroll';
 
 const ASK: Record<Kind, string> = {
   definition: 'Дай определение',
@@ -85,10 +86,20 @@ export function CardsPage() {
   const card: Facet | undefined = queue[pos];
   const next = () => setSession((s) => ({ ...s, pos: s.pos + 1, step: 0 }));
 
+  // Следующая карточка открывается с начала, а не с того места, где закончился длинный ответ.
+  const cardRef = useRef<HTMLDivElement>(null);
+  const cardKey = card?.key;
+  useEffect(() => {
+    if (cardKey) revealTop(cardRef.current);
+    else window.scrollTo(0, 0);
+  }, [cardKey, pos]);
+
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
       if (e.key === ' ' || e.key === 'Enter') {
+        // Кнопка или ссылка в фокусе срабатывает сама, иначе с клавиатуры по ней не перейти.
+        if (e.target instanceof Element && e.target.closest('a, button')) return;
         e.preventDefault();
         setStep((x) => (x === 0 || x === 2 ? x + 1 : x));
       }
@@ -144,7 +155,7 @@ export function CardsPage() {
           </p>
         </div>
       ) : (
-        <div className="card">
+        <div className="card" ref={cardRef}>
           <div className="card-meta">
             <span>
               {pos + 1} / {queue.length}{' '}

@@ -103,13 +103,13 @@ export function ProofPage() {
       <UsesLinks unit={unit} />
       <div className="panel">
         <div className="small muted">
-          Как ты знаешь это доказательство? Сейчас: <StatusDot status={st.items[key]?.status ?? 'new'} />
+          Как ты знаешь это доказательство? Сейчас:{'\u00a0'}<StatusDot status={st.items[key]?.status ?? 'new'} />
         </div>
         <Grade itemKey={key} current={st.items[key]?.status} alsoKeys={cat.facetByKey.has(`${unit.id}:statement`) ? [`${unit.id}:statement`] : []} />
       </div>
       {nextProof && nextProof.unit.id !== unit.id && (
         <p>
-          <Link to={path(`/proofs/${nextProof.unit.id}`)}>Следующее: {nextProof.unit.title} →</Link>
+          <Link to={path(`/proofs/${nextProof.unit.id}`)}>Следующее: {nextProof.unit.title}{'\u00a0'}→</Link>
         </p>
       )}
     </div>

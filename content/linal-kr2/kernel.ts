@@ -159,8 +159,11 @@ export const kernel: Topic = {
       },
       notes: md`$\mathbb V=\mathbb U\oplus\mathbb L$ $\iff$ объединение базисов $\mathbb U$ и $\mathbb L$ — базис $\mathbb V$. Прямое дополнение строят дополнением базиса $\mathbb U$ до базиса $\mathbb V$: добавленные векторы порождают дополнение. Оно не единственно.
 
+Чтобы обосновать, что $\mathbb L$ — прямое дополнение, проверь оба условия: $\mathbb U\cap\mathbb L=\{\mathbf 0\}$ и $\mathbb U+\mathbb L=\mathbb V$.
+
 Примеры: $\mathbb R^3=\operatorname{span}\{\mathbf e_1,\mathbf e_2\}\oplus\operatorname{span}\{\mathbf e_3\}$; матрицы $=$ симметричные $\oplus$ кососимметричные; функции $=$ чётные $\oplus$ нечётные; $\mathbb F[t]_{\le n}=\{p\mid p(a)=0\}\oplus\operatorname{span}\{q\}$ для любого $q$ с $q(a)\ne0$.`,
       pitfalls: [
+        md`Одной проверки мало: при нулевом пересечении сумма может не дать всё пространство ($\mathbb R^3$ и две прямые), а при $\mathbb U+\mathbb L=\mathbb V$ пересечение может быть ненулевым (две плоскости в $\mathbb R^3$).`,
         md`Прямое дополнение не единственно: к оси $Ox$ в $\mathbb R^2$ подходит любая другая прямая через ноль.`,
         md`Прямое дополнение — не теоретико-множественное дополнение $\mathbb V\setminus\mathbb U$ (то даже не подпространство: в нём нет нуля).`,
       ],
@@ -198,7 +201,11 @@ export const kernel: Topic = {
 
 В базисе «базис $\operatorname{Im}P$ + базис $\ker P$» матрица проектора — $\operatorname{diag}(1,\dots,1,0,\dots,0)$.
 
-Чтобы найти $P_{\mathbb U}(\mathbf v)$ при $\mathbb V=\mathbb U\oplus\mathbb L$: раскладываем $\mathbf v$ по объединённому базису и оставляем слагаемые из $\mathbb U$.`,
+Чтобы найти $P_{\mathbb U}(\mathbf v)$ при $\mathbb V=\mathbb U\oplus\mathbb L$: раскладываем $\mathbf v$ по объединённому базису и оставляем слагаемые из $\mathbb U$.
+
+**Матрица проектора** в стандартном базисе — два способа:
+- по столбцам: в $j$-м столбце стоит проекция $\mathbf e_j$;
+- заменой базиса: $P=C\operatorname{diag}(1,\dots,1,0,\dots,0)C^{-1}$, где в столбцах $C$ стоят базис $\mathbb U$ и базис $\mathbb L$.`,
       pitfalls: [
         md`Проектор на $\mathbb U$ зависит и от $\mathbb L$ («вдоль чего»): при другом дополнении получится другой оператор.`,
         md`Проектор не обязан быть $0$ или $\operatorname{Id}$: $P^2=P$ не значит $P(P-\operatorname{Id})=0\Rightarrow P\in\{0,\operatorname{Id}\}$ — у операторов есть делители нуля.`,

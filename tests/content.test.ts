@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import katex from 'katex';
 import { exams } from '../content';
 import type { Exam } from '../src/content/schema';
+import { fitsSlot } from '../src/engine/ticket';
 
 // Все формулы из текста: $$...$$ и $...$
 function formulas(text: string): string[] {
@@ -56,8 +57,9 @@ describe('exams', () => {
       const topicIds = new Set(e.topics.map((t) => t.id));
       for (const s of slots) {
         for (const t of s.topics ?? []) expect(topicIds.has(t), `${e.id}: ${s.label} -> ${t}`).toBe(true);
-        const fits = e.tasks.filter((t) => (!s.topics || s.topics.includes(t.topic)) && (!s.types || s.types.includes(t.type)));
+        const fits = e.tasks.filter((t) => fitsSlot(t, s));
         expect(fits.length, `${e.id}: мало задач для «${s.label}»`).toBeGreaterThanOrEqual(3);
+        if (s.points !== undefined) for (const t of fits) expect(t.points, `${t.id} на позиции «${s.label}»`).toBe(s.points);
       }
     }
   });
@@ -241,6 +243,32 @@ describe('linal-kr2: task bank', () => {
     for (const t of linal.tasks) {
       expect(t.source, t.id).toBeTruthy();
       expect(t.hints.length, t.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('mock matches the announcement: 11 points, 10 count toward the grade', () => {
+    const m = linal.mock.kind === 'test' ? linal.mock : undefined;
+    expect(m?.minutes).toBe(60);
+    expect(m?.scoreCap).toBe(10);
+    expect(m?.slots.reduce((s, x) => s + x.points!, 0)).toBe(11);
+  });
+
+  it('every skill from the announcement has tasks for the mock and a link on the «how» page', () => {
+    const skills = linal.skills!;
+    expect(skills).toHaveLength(7);
+    const ids = new Set(skills.map((s) => s.id));
+    for (const t of linal.tasks) if (t.skill) expect(ids.has(t.skill), t.id).toBe(true);
+    for (const s of skills) {
+      expect(linal.tasks.filter((t) => t.skill === s.id && ['compute', 'construct'].includes(t.type)).length, s.id).toBeGreaterThanOrEqual(3);
+      expect(linal.how, s.id).toContain(`(/linal-kr2/tasks?skill=${s.id})`);
+    }
+    const covered = new Set(linal.mock.kind === 'test' ? linal.mock.slots.flatMap((s) => s.skills ?? []) : []);
+    expect(covered).toEqual(ids);
+  });
+
+  it('the bank has a task inspired by each problem the lecturer named', () => {
+    for (const src of ['семинара 6, задача 5', 'семинара 6, задача 6', 'ДЗ 7, задача 3', 'семинара 7, задача 3', 'семинара 7, задача 14', 'семинара 8, задача 1', 'ДЗ 8, задача 2', 'семинара 8, задача 8', 'ДЗ 8, задача 3', 'семинара 8, задача 12', 'семинара 8, задача 13', 'ДЗ 8, задача 5']) {
+      expect(linal.tasks.some((t) => t.source?.includes(src)), src).toBe(true);
     }
   });
 });

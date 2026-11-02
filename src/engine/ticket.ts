@@ -102,10 +102,18 @@ function facetPicker(cat: Catalog) {
     );
 }
 
-/** Задача на позицию: подходит по теме и типу, ещё не взята. */
+/** Подходит ли задача на позицию пробной контрольной. */
+export function fitsSlot(t: Task, slot: MockSlot): boolean {
+  return (
+    (!slot.topics || slot.topics.includes(t.topic)) &&
+    (!slot.skills || (t.skill !== undefined && slot.skills.includes(t.skill))) &&
+    (!slot.types || slot.types.includes(t.type))
+  );
+}
+
+/** Задача на позицию: подходит по теме, навыку и типу, ещё не взята. */
 function pickForSlot(pool: Task[], slot: MockSlot, used: Set<string>): Task | undefined {
-  const fits = pool.filter((t) => (!slot.topics || slot.topics.includes(t.topic)) && (!slot.types || slot.types.includes(t.type)));
-  return take(fits, 1, used, (x) => x.id)[0];
+  return take(pool.filter((t) => fitsSlot(t, slot)), 1, used, (x) => x.id)[0];
 }
 
 /** Билет одного уровня по составу из конфига экзамена (без продвинутых вопросов). */
@@ -205,7 +213,8 @@ export interface Scoring {
 
 export function scoringOf(cat: Catalog): Scoring {
   const spec = cat.exam.mock;
-  return spec.kind === 'ticket' && spec.layout ? { theoryGate: spec.layout.theoryGate, scoreCap: spec.layout.scoreCap } : {};
+  if (spec.kind === 'test') return { scoreCap: spec.scoreCap };
+  return spec.layout ? { theoryGate: spec.layout.theoryGate, scoreCap: spec.layout.scoreCap } : {};
 }
 
 /** Сколько вопросов по теории сдано на полный балл. */

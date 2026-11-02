@@ -69,6 +69,11 @@ describe('exam texts follow one style', () => {
         }
       });
 
+      it('task prompts address the reader as «ты»', () => {
+        const formal = /(^|[^а-яё])(найдите|докажите|проверьте|объясните|обоснуйте|выпишите|постройте|опишите|выразите)(?![а-яё])/i;
+        for (const t of e.tasks) expect(t.prompt, t.id).not.toMatch(formal);
+      });
+
       it('links inside content lead to this exam and its sections', () => {
         const allowed = new Set<string>([...e.features, ...PAGES]);
         const topics = new Set(e.topics.map((t) => t.id));
@@ -115,12 +120,22 @@ describe('styles.css follows the design rules', () => {
 
   it('links styled as buttons or cards are not underlined on hover', () => {
     const noUnderline = rules.filter((r) => /text-decoration:\s*none/.test(r.body)).flatMap((r) => r.selector.split(',').map((x) => x.trim()));
-    for (const sel of ['.btn:hover', '.exam-card:hover', '.topic-card:hover', '.cell:hover', '.nav a:hover']) expect(noUnderline).toContain(sel);
+    for (const sel of ['.btn:hover', '.exam-card:hover', '.topic-card:hover', '.ready-row:hover', '.cell:hover', '.nav a:hover']) expect(noUnderline).toContain(sel);
+  });
+
+  it('manual dark theme uses the same values as the system one', () => {
+    const manual = rules.find((r) => r.selector === ":root[data-theme='dark']")!.body;
+    const tidy = (b: string) => b.split(';').map((x) => x.trim()).filter(Boolean);
+    expect(tidy(manual)).toEqual(tidy(dark));
+  });
+
+  it('content blocks do not get their own scrollbars; only a formula may scroll', () => {
+    for (const r of rules) if (/overflow-x:\s*auto/.test(r.body)) expect(r.selector).not.toMatch(/\.(card|task|tq|unit)\b/);
   });
 
   it('key components keep their styles', () => {
     const selectors = rules.map((r) => r.selector).join(' ');
-    for (const c of ['exam-icon', 'exam-top', 'exam-main', 'exam-title', 'exam-subject', 'ring', 'meter', 'big-arrow', 'brand-back']) expect(selectors).toContain(`.${c}`);
+    for (const c of ['exam-icon', 'exam-top', 'exam-main', 'exam-title', 'exam-subject', 'ring', 'meter', 'ready-list', 'ready-row', 'big-arrow', 'brand-home']) expect(selectors).toContain(`.${c}`);
   });
 
   it('choosing a menu item changes only its color, so nothing jumps', () => {

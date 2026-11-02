@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { makeQuestion, POINT_LABEL, randomProblem, VALUE_LABEL, type PointType, type ValueType } from '../engine/quant';
 import { Md } from '../ui/Md';
+import { revealTop } from '../ui/scroll';
 
 const POINTS = Object.keys(POINT_LABEL) as PointType[];
 const VALUES = Object.keys(VALUE_LABEL) as ValueType[];
@@ -14,6 +15,11 @@ export function QuantPage() {
   const [picked, setPicked] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
   const [stats, setStats] = useState({ ok: 0, all: 0 });
+
+  const cardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    revealTop(cardRef.current);
+  }, [q]);
 
   const next = () => {
     setQ(makeQuestion(randomProblem(points, values, neg)));
@@ -70,7 +76,7 @@ export function QuantPage() {
         </div>
       </details>
 
-      <div className="card">
+      <div className="card" ref={cardRef}>
         <div className="card-meta">
           <span className="muted">Сформулируй в кванторах и неравенствах:</span>
           {stats.all > 0 && (

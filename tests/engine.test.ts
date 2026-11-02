@@ -6,6 +6,24 @@ import { makeQuestion, randomProblem, type PointType, type ValueType } from '../
 
 const matan = catalogOf(exams.find((e) => e.id === 'matan-colloc')!);
 
+describe('test mock', () => {
+  const linal = catalogOf(exams.find((e) => e.id === 'linal-kr2')!);
+
+  it('linal: 6 different tasks with skills, 11 points, the grade stops at 10', () => {
+    for (let i = 0; i < 50; i++) {
+      const qs = generateMock(linal, 'basic');
+      expect(qs.length).toBe(6);
+      expect(new Set(qs.map((q) => q.task!.id)).size).toBe(6);
+      expect(qs.every((q) => q.task!.skill && ['compute', 'construct'].includes(q.task!.type))).toBe(true);
+      expect(qs.reduce((s, q) => s + q.parts[0].max, 0)).toBe(11);
+
+      const full = Object.fromEntries(qs.map((q) => [`${q.n}:0`, q.parts[0].max]));
+      expect(totals(qs, full, scoringOf(linal))).toMatchObject({ red: 10, redMax: 10 });
+      expect(totals(qs, { ...full, '6:0': 0 }, scoringOf(linal)).red).toBe(9.5);
+    }
+  });
+});
+
 describe('ticket', () => {
   it('basic ticket: 11 questions, 11 red points, nothing black-only', () => {
     for (let i = 0; i < 50; i++) {
