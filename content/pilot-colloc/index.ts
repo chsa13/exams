@@ -9,9 +9,9 @@ import { how } from './how';
 
 export const pilotColloc: Exam = {
   id: 'pilot-colloc',
-  subject: 'Математический анализ',
-  kind: 'Коллоквиум пилотного потока',
-  short: 'Коллок по матану (пилот)',
+  subject: 'Математический анализ (пилот)',
+  kind: 'Коллоквиум',
+  short: 'Коллоквиум по матану (пилот)',
   icon: 'ℝ',
   dates: ['2026-11-18', '2026-11-18'],
   when: '18 ноября',

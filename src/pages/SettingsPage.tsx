@@ -20,10 +20,13 @@ export function SettingsPage() {
   };
 
   const upload = (file: File) => {
+    const units = new Set(exam.topics.flatMap((t) => t.units.map((u) => u.id)));
+    const tasks = new Set(exam.tasks.map((t) => t.id));
+    const ownKey = (key: string) => (key.startsWith('task:') ? tasks.has(key.slice(5)) : units.has(key.split(':')[0]));
     file
       .text()
       .then((t) => {
-        store.importJson(t);
+        store.importJson(t, ownKey);
         setMsg('Прогресс загружен.');
       })
       .catch((e: Error) => setMsg(`Ошибка: ${e.message}`));

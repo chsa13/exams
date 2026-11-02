@@ -1,10 +1,11 @@
-import { Link, useNavigate } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import type { Kind } from '../content/schema';
-import { readiness, score, taskKey } from '../engine/catalog';
+import { readiness, score, taskKey, type Readiness } from '../engine/catalog';
 import { useCat, usePath } from '../exam';
 import { useProgress } from '../store/progress';
 import { Star } from '../ui/LevelSwitch';
-import { ProgressBar } from '../ui/ProgressBar';
+import { Ring } from '../ui/Ring';
 import { Countdown } from './HubPage';
 import { count } from '../plural';
 
@@ -14,54 +15,56 @@ const KINDS: [Kind, string][] = [
   ['proof', 'Док.'],
 ];
 
-const KIND_PLURAL: Record<Kind, string> = { definition: 'определения', statement: 'формулировки', proof: 'доказательства' };
-
 export function HomePage() {
   const cat = useCat();
   const { exam } = cat;
   const p = usePath();
   const st = useProgress();
-  const nav = useNavigate();
   const fs = cat.visibleFacets(st.mode);
   const all = readiness(fs.map((f) => f.key), st);
   const ts = readiness(cat.visibleTasks(st.mode).map(taskKey), st);
   const lastMock = st.mocks.filter((m) => m.mode === st.mode).at(-1);
   const kinds = KINDS.filter(([k]) => fs.some((f) => f.kind === k));
   const isTest = exam.mock.kind === 'test';
+  const hasTasks = exam.features.includes('tasks');
+  const weakCount = all.weak + all.shaky;
+  const theoryMeter = <Meter key="theory" title="Теория" known="на «знаю»" total={all.total} r={all} />;
+  const tasksMeter = <Meter key="tasks" title="Задачи" known="на «знаю»" total={ts.total} r={ts} />;
+  // В контрольной из задач главное — задачи, поэтому они идут первыми.
+  const meters = !hasTasks ? [theoryMeter] : isTest ? [tasksMeter, theoryMeter] : [theoryMeter, tasksMeter];
 
   return (
     <div className="page">
       <section className="hero">
-        <div>
-          <div className="hero-kicker">
-            {exam.subject} · <Countdown exam={exam} />
-          </div>
-          <h1>{exam.kind}</h1>
-          <p className="muted">
-            {exam.when}. {exam.format}. <Link to={p('/how')}>Как устроено и как готовиться →</Link>
-          </p>
+        <h1>{exam.kind}</h1>
+        <div className="hero-kicker">
+          <span>{exam.subject}</span>
+          <Countdown exam={exam} />
         </div>
-        <div className="hero-stats">
-          <div className="stat">
-            <div className="stat-num">{Math.round(score(all) * 100)}%</div>
-            <div className="stat-label">теории выучено</div>
-          </div>
-          <div className="stat">
-            <div className="stat-num">
-              {isTest ? `${ts.known}/${ts.total}` : `${all.known}/${all.total}`}
-            </div>
-            <div className="stat-label">{isTest ? 'задач на «знаю»' : 'вопросов на «знаю»'}</div>
-          </div>
-          <div className="stat">
-            <div className="stat-num">{lastMock ? `${fmt(lastMock.red)}/${fmt(lastMock.redMax)}` : '—'}</div>
-            <div className="stat-label">
-              {isTest ? 'последняя пробная' : 'последний пробный'}
-              {exam.levels && (
-                <>
-                  {' '}
-                  <Star scale="red" />
-                </>
-              )}
+        <p className="muted">
+          {exam.when}. {exam.format}. <Link to={p('/how')}>Как устроено и как готовиться →</Link>
+        </p>
+      </section>
+
+      {/* Прогресс — кольца в одной панели: это сводка, а не кнопки, нажимать тут нечего. */}
+      <section className="panel progress" aria-label="Твой прогресс">
+        <div className="progress-rings">
+          {meters}
+          <div className="meter">
+            <Ring parts={lastMock ? [['ring-accent', lastMock.red / lastMock.redMax]] : []} label={lastMock ? `${fmt(lastMock.red)} из ${fmt(lastMock.redMax)}` : 'нет результата'}>
+              {lastMock ? fmt(lastMock.red) : '—'}
+            </Ring>
+            <div className="meter-text">
+              <div className="meter-title">{exam.mock.title}</div>
+              <div className="meter-sub">
+                {lastMock ? `из ${fmt(lastMock.redMax)} в последний раз` : 'ещё не решал'}
+                {lastMock && exam.levels && (
+                  <>
+                    {' '}
+                    <Star scale="red" />
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -69,34 +72,25 @@ export function HomePage() {
 
       <section className="actions">
         {isTest ? (
-          <button className="big primary" onClick={() => nav(p('/tasks'))}>
-            <span className="big-title">Решать задачи</span>
-            <span className="big-sub">сначала нерешённые</span>
-          </button>
+          <Action primary title="Решать задачи" to={p('/tasks')}>
+            {ts.total - ts.known ? `ещё ${ts.total - ts.known} из ${count(ts.total, 'задачи', 'задач', 'задач')}` : 'все задачи решены, можно повторить'}
+          </Action>
         ) : (
-          <button className="big primary" onClick={() => nav(p('/cards'))}>
-            <span className="big-title">Учить сейчас</span>
-            <span className="big-sub">сначала слабое и новое</span>
-          </button>
+          <Action primary title="Учить карточки" to={p('/cards')}>
+            {all.total - all.known ? `ещё ${all.total - all.known} из ${count(all.total, 'вопроса', 'вопросов', 'вопросов')}` : 'всё выучено, можно повторить'}
+          </Action>
         )}
-        <button className="big" onClick={() => nav(p('/mock'))}>
-          <span className="big-title">{exam.mock.title}</span>
-          <span className="big-sub">
-            {exam.mock.kind === 'ticket'
-              ? `${exam.mock.prepMin} минут подготовки, затем самопроверка по баллам`
-              : `${exam.mock.minutes} минут на бумаге, затем самопроверка по баллам`}
-          </span>
-        </button>
+        <Action title={exam.mock.title} to={p('/mock')}>
+          {exam.mock.kind === 'ticket' ? `${exam.mock.prepMin} минут, как на коллоквиуме` : `${exam.mock.minutes} минут, как на контрольной`}
+        </Action>
         {isTest ? (
-          <button className="big" onClick={() => nav(p('/cards'))}>
-            <span className="big-title">Теория карточками</span>
-            <span className="big-sub">определения, теоремы и почему они верны</span>
-          </button>
+          <Action title="Теория карточками" to={p('/cards')}>
+            определения и теоремы
+          </Action>
         ) : (
-          <button className="big" onClick={() => nav(p('/cards?last=1'))}>
-            <span className="big-title">Последний вечер</span>
-            <span className="big-sub">только «не знаю» и «частично»</span>
-          </button>
+          <Action title="Слабые карточки" to={p('/cards?last=1')}>
+            {weakCount ? `${count(weakCount, 'вопрос', 'вопроса', 'вопросов')} с «не знаю» и «частично»` : 'пока нечего повторять'}
+          </Action>
         )}
       </section>
 
@@ -131,30 +125,40 @@ export function HomePage() {
           })}
         </div>
       </section>
-
-      <section className="two">
-        <div className="panel">
-          <h3>Теория</h3>
-          <ProgressBar r={all} />
-          <p className="small muted">{count(all.total, 'вопрос', 'вопроса', 'вопросов')}: {kinds.map(([k]) => KIND_PLURAL[k]).join(', ')}.</p>
-        </div>
-        {exam.features.includes('tasks') && (
-          <div className="panel">
-            <h3>Задачи</h3>
-            <ProgressBar r={ts} />
-            <p className="small muted">
-              {count(ts.total, 'задача', 'задачи', 'задач')} в стиле {isTest ? 'контрольной' : 'билета'}.
-              {exam.features.includes('quant') && (
-                <>
-                  {' '}
-                  <Link to={p('/quant')}>Тренажёр кванторов</Link> генерирует их без конца.
-                </>
-              )}
-            </p>
-          </div>
-        )}
-      </section>
     </div>
+  );
+}
+
+function Meter({ title, known, total, r }: { title: string; known: string; total: number; r: Readiness }) {
+  const rest = [r.shaky ? `частично ${r.shaky}` : '', r.weak ? `не знаю ${r.weak}` : ''].filter(Boolean).join(' · ');
+  return (
+    <div className="meter">
+      {/* Длина дуги равна проценту: «частично» идёт за половину, как и в самом проценте. */}
+      <Ring parts={[['ring-known', r.total ? r.known / r.total : 0], ['ring-shaky', r.total ? (r.shaky * 0.5) / r.total : 0]]} label={`${title}: ${Math.round(score(r) * 100)}%`}>
+        {Math.round(score(r) * 100)}%
+      </Ring>
+      <div className="meter-text">
+        <div className="meter-title">{title}</div>
+        <div className="meter-sub">
+          {r.known} из {total} {known}
+        </div>
+        {rest && <div className="meter-sub">{rest}</div>}
+      </div>
+    </div>
+  );
+}
+
+function Action({ title, to, primary = false, children }: { title: string; to: string; primary?: boolean; children: ReactNode }) {
+  return (
+    <Link className={`btn big ${primary ? 'primary' : ''}`} to={to}>
+      <span className="big-text">
+        <span className="big-title">{title}</span>
+        <span className="big-sub">{children}</span>
+      </span>
+      <span className="big-arrow" aria-hidden="true">
+        →
+      </span>
+    </Link>
   );
 }
 
@@ -165,7 +169,7 @@ function Cell({ keys, to }: { keys: string[]; to: string }) {
   return (
     <Link
       to={to}
-      className="cell"
+      className={`cell ${r.known === r.total ? 'cell-full' : score(r) === 0 ? 'cell-zero' : ''}`}
       style={{ ['--p' as string]: score(r) }}
       title={`знаю ${r.known}, частично ${r.shaky}, не знаю ${r.weak}, новых ${r.fresh}`}
     >

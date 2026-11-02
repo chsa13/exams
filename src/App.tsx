@@ -1,9 +1,10 @@
 import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { useEffect, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 import type { Feature } from './content/schema';
 import { trackPage } from './analytics';
 import { catalogOf, examById } from './engine/catalog';
 import { ExamProvider, useCat, usePath } from './exam';
+import { ExamIcon } from './ui/ExamIcon';
 import { ExamStars, LevelSwitch } from './ui/LevelSwitch';
 import { HubPage } from './pages/HubPage';
 import { HomePage } from './pages/HomePage';
@@ -72,7 +73,10 @@ function HubLayout() {
       <header className="top">
         <div className="top-inner">
           <NavLink to="/" className="brand">
-            <span className="brand-mark">∑</span> {SITE_TITLE}
+            <span className="exam-icon exam-icon-red exam-icon-sm" aria-hidden="true">
+              ∑
+            </span>
+            {SITE_TITLE}
           </NavLink>
         </div>
       </header>
@@ -92,6 +96,8 @@ const NAV: [string, string, Feature | null][] = [
   ['/quant', 'Кванторы', 'quant'],
   ['/tasks', 'Задачи', 'tasks'],
   ['/mock', '', 'mock'],
+  ['/how', 'Как устроено', null],
+  ['/settings', 'Настройки', null],
 ];
 
 function ExamLayout() {
@@ -112,26 +118,53 @@ function ExamLayout() {
 function ExamShell() {
   const p = usePath();
   const { exam } = useCat();
+  const { pathname } = useLocation();
+  // На узком экране разделы спрятаны в меню: оно закрывается при переходе, по Esc и по нажатию мимо него.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+    const onClick = (e: MouseEvent) => {
+      if (!headerRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('click', onClick);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('click', onClick);
+    };
+  }, [menuOpen]);
   const has = (f: Feature | null) => !f || exam.features.includes(f);
   const only = (f: Feature, el: ReactElement) => (has(f) ? el : <Navigate to={p('/')} replace />);
   return (
     <>
-      <header className="top">
+      <header className="top" ref={headerRef}>
         <div className="top-inner">
           <div className="brand-row">
-            <NavLink to="/" className="brand brand-hub" title="Все экзамены">
-              <span className="brand-mark">∑</span>
+            <NavLink to="/" className="brand-back" title="Все экзамены" aria-label="Все экзамены">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="m15 18-6-6 6-6" />
+              </svg>
             </NavLink>
-            <span className="brand-sep">/</span>
             <NavLink to={p('/')} className="brand">
-              <span className="brand-mark">{exam.icon}</span> {exam.short} <ExamStars exam={exam} />
+              <ExamIcon exam={exam} small />
+              {exam.short} <ExamStars exam={exam} />
             </NavLink>
           </div>
           {exam.levels && <LevelSwitch />}
+          <button className="nav-toggle" aria-label="Разделы" aria-expanded={menuOpen} aria-controls="exam-nav" onClick={() => setMenuOpen(!menuOpen)}>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true">
+              <path d={menuOpen ? 'M6 6l12 12M18 6 6 18' : 'M4 7h16M4 12h16M4 17h16'} />
+            </svg>
+          </button>
         </div>
-        <nav className="nav">
+        <nav id="exam-nav" className={`nav ${menuOpen ? 'nav-open' : ''}`}>
           {NAV.filter(([, , f]) => has(f)).map(([to, label]) => (
-            <NavLink key={to} to={p(to)} end={to === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
+            <NavLink key={to} to={p(to)} end={to === '/'} onClick={() => setMenuOpen(false)} className={({ isActive }) => `${isActive ? 'active' : ''} ${to === '/how' ? 'nav-info' : ''}`}>
               {to === '/mock' ? exam.mock.title : label}
             </NavLink>
           ))}
@@ -153,29 +186,17 @@ function ExamShell() {
           <Route path="*" element={<Navigate to={p('/')} replace />} />
         </Routes>
       </main>
-      <Footer exam />
+      <Footer />
     </>
   );
 }
 
-function Footer({ exam = false }: { exam?: boolean }) {
+function Footer() {
   return (
     <footer className="foot">
-      {exam && <ExamFooterLinks />}
       <span className="muted">
         Неофициальный конспект от студентов по программе курсов, не заменяет материалы курса. Прогресс хранится только в этом браузере, отдельно для каждого экзамена.
       </span>
     </footer>
-  );
-}
-
-function ExamFooterLinks() {
-  const p = usePath();
-  return (
-    <>
-      <NavLink to={p('/how')}>Как устроено и как готовиться</NavLink>
-      <NavLink to={p('/settings')}>Прогресс и настройки</NavLink>
-      <NavLink to="/">Все экзамены</NavLink>
-    </>
   );
 }

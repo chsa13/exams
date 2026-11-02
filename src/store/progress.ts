@@ -117,9 +117,14 @@ export class ProgressStore {
     return JSON.stringify(this.state, null, 2);
   }
 
-  importJson(json: string) {
-    const parsed = JSON.parse(json) as State;
-    if (parsed.version !== 1 || typeof parsed.items !== 'object') throw new Error('Неверный файл прогресса');
+  /** ownKey проверяет, что отметка относится к этому экзамену: файл другого экзамена не должен затереть прогресс. */
+  importJson(json: string, ownKey?: (key: string) => boolean) {
+    const parsed = JSON.parse(json) as State | null;
+    if (parsed?.version !== 1 || !parsed.items || typeof parsed.items !== 'object' || Array.isArray(parsed.items)) {
+      throw new Error('Неверный файл прогресса');
+    }
+    const keys = Object.keys(parsed.items);
+    if (ownKey && keys.length && !keys.some(ownKey)) throw new Error('Это файл другого экзамена, прогресс не изменён');
     this.set({ ...empty(), ...parsed });
   }
 

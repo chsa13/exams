@@ -12,7 +12,7 @@ export const matanColloc: Exam = {
   id: 'matan-colloc',
   subject: 'Математический анализ',
   kind: 'Коллоквиум',
-  short: 'Коллок по матану',
+  short: 'Коллоквиум по матану',
   icon: '∫',
   dates: ['2026-10-26', '2026-10-30'],
   when: '26–30 октября',

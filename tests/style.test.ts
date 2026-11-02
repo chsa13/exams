@@ -11,7 +11,7 @@ const MOCK_TITLE = { ticket: 'Пробный билет', test: 'Пробная 
 const HOW_FACTS = ['Когда', 'Время', 'Что входит', 'Нельзя'];
 const HOW_LAST = 'Как готовиться на сайте';
 /** Чего не должно быть в текстах: уровни — компонентом Star, пробный вариант — по названию из mock.title. */
-const BANNED = [/🔴|⚫/u, /пробник/i];
+const BANNED = [/🔴|⚫/u, /пробник/i, /коллок(?!виум)/i];
 /** Адреса внутри раздела экзамена, на которые можно ссылаться, кроме разделов из features. */
 const PAGES = ['how', 'settings', 'topic'];
 
@@ -26,9 +26,9 @@ describe('exam texts follow one style', () => {
       const how = e.how.trim();
       const short = [e.when, e.format, e.scope, e.tasksNote, how];
 
-      it('subject is the subject only; short is «Коллок по …» / «КР2 по …»', () => {
+      it('subject is the subject only; short is «Коллоквиум по …» / «КР2 по …»', () => {
         expect(e.subject).not.toMatch(/поток|,/);
-        expect(e.short).toMatch(/^(Коллок|КР\d*) по /);
+        expect(e.short).toMatch(/^(Коллоквиум|КР\d*) по /);
       });
 
       it('when / format / scope: one line each, no trailing period', () => {
@@ -96,6 +96,69 @@ describe('UI strings', () => {
           const code = t.replace(/\s\/\/.*$/, '');
           for (const re of BANNED) expect(code, `${f}:${i + 1}`).not.toMatch(re);
         });
+    }
+  });
+});
+
+// Правила оформления — CLAUDE.md, §7, подраздел «Оформление».
+describe('styles.css follows the design rules', () => {
+  const css = readFileSync('src/styles.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({ selector: m[1].trim(), body: m[2] }));
+  const light = rules.find((r) => r.selector === ':root')!.body;
+  const dark = rules.find((r) => r.selector.startsWith(':root:not'))!.body;
+
+  it('no uppercase labels, no italic, weights 400–600', () => {
+    expect(css).not.toMatch(/text-transform:\s*uppercase/);
+    expect(css).not.toMatch(/font-style:\s*italic/);
+    for (const m of css.matchAll(/font-weight:\s*(\d+)/g)) expect(['400', '500', '600']).toContain(m[1]);
+  });
+
+  it('links styled as buttons or cards are not underlined on hover', () => {
+    const noUnderline = rules.filter((r) => /text-decoration:\s*none/.test(r.body)).flatMap((r) => r.selector.split(',').map((x) => x.trim()));
+    for (const sel of ['.btn:hover', '.exam-card:hover', '.topic-card:hover', '.cell:hover', '.nav a:hover']) expect(noUnderline).toContain(sel);
+  });
+
+  it('key components keep their styles', () => {
+    const selectors = rules.map((r) => r.selector).join(' ');
+    for (const c of ['exam-icon', 'exam-top', 'exam-main', 'exam-title', 'exam-subject', 'ring', 'meter', 'big-arrow', 'brand-back']) expect(selectors).toContain(`.${c}`);
+  });
+
+  it('choosing a menu item changes only its color, so nothing jumps', () => {
+    const active = rules.find((r) => r.selector === '.nav a.active')!.body;
+    expect(active).not.toMatch(/font-weight|font-size|padding|border|background/);
+  });
+
+  it('spacing is set in px, not em', () => {
+    expect(css).not.toMatch(/(?:padding|margin|gap)[\w-]*:[^;]*\d(?:r?em)\b/);
+  });
+
+  const token = (block: string, name: string) => {
+    const m = block.match(new RegExp(`--${name}:\\s*(#[0-9a-f]{6})`));
+    if (!m) throw new Error(`нет токена --${name}`);
+    return m[1];
+  };
+  const luminance = (hex: string) => {
+    const [r, g, b] = [1, 3, 5].map((i) => {
+      const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const contrast = (a: string, b: string) => {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  };
+
+  it('text on solid fills reaches 4.5:1 in both themes', () => {
+    for (const block of [light, dark]) {
+      for (const [fill, ink] of [
+        ['accent', 'on-accent'],
+        ['known-solid', 'on-solid'],
+        ['weak', 'on-solid'],
+        ['shaky', 'on-shaky'],
+      ]) {
+        expect(contrast(token(block, fill), token(block.includes(`--${ink}:`) ? block : light, ink)), `${fill} / ${ink}`).toBeGreaterThanOrEqual(4.5);
+      }
     }
   });
 });

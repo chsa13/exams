@@ -3,6 +3,7 @@ import { exams } from '../../content';
 import type { Exam } from '../content/schema';
 import { catalogOf, readiness, score, taskKey } from '../engine/catalog';
 import { useProgressOf } from '../store/progress';
+import { ExamIcon } from '../ui/ExamIcon';
 import { ExamStars } from '../ui/LevelSwitch';
 import { ProgressBar } from '../ui/ProgressBar';
 import { count } from '../plural';
@@ -46,10 +47,10 @@ export function HubPage() {
   });
   return (
     <div className="page">
-      <h1>Подготовка к экзаменам</h1>
+      <h1>Коллоквиумы и контрольные ЦУ</h1>
       <p className="lead">
-        Коллоквиумы и контрольные в ЦУ. Выбери, к чему готовишься: внутри конспект теории, карточки, доказательства по шагам, задачи с
-        решениями и пробный вариант на время.
+        Выбери, к чему готовишься: внутри конспект теории, карточки, доказательства по шагам, задачи с решениями и пробный вариант на
+        время.
       </p>
       <div className="exam-list">
         {sorted.map((e) => (
@@ -68,28 +69,34 @@ function ExamCard({ exam }: { exam: Exam }) {
   const past = phaseOf(exam).phase === 'past';
   return (
     <Link to={`/${exam.id}`} className={`exam-card ${past ? 'exam-past' : ''}`}>
-      <div className="exam-icon">{exam.icon}</div>
+      <ExamIcon exam={exam} />
       <div className="exam-main">
         <div className="exam-top">
-          <span className="exam-subject">{exam.subject}</span>
+          <span className="exam-title">
+            {exam.kind} <ExamStars exam={exam} />
+          </span>
           <Countdown exam={exam} />
         </div>
-        <div className="exam-title">
-          {exam.kind} <ExamStars exam={exam} />
-        </div>
+        <div className="exam-subject">{exam.subject}</div>
         <div className="muted small">
           {exam.when} · {exam.format}
         </div>
         <div className="muted small">{exam.scope}</div>
         <div className="exam-bars">
           <div>
-            <span className="label">Теория · {Math.round(score(theory) * 100)}%</span>
-            <ProgressBar r={theory} />
+            <div className="bar-head label">
+              <span>Теория</span>
+              <span>{Math.round(score(theory) * 100)}%</span>
+            </div>
+            <ProgressBar r={theory} legend={false} />
           </div>
           {exam.features.includes('tasks') && (
             <div>
-              <span className="label">Задачи · {Math.round(score(tasks) * 100)}%</span>
-              <ProgressBar r={tasks} />
+              <div className="bar-head label">
+                <span>Задачи</span>
+                <span>{Math.round(score(tasks) * 100)}%</span>
+              </div>
+              <ProgressBar r={tasks} legend={false} />
             </div>
           )}
         </div>
