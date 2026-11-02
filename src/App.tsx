@@ -109,7 +109,7 @@ function ExamLayout() {
   const { examId } = useParams();
   const exam = examById.get(examId ?? '');
   useEffect(() => {
-    document.title = exam ? `${exam.short} · ${SITE_TITLE}` : SITE_TITLE;
+    document.title = exam ? `${exam.short} — ${SITE_TITLE}` : SITE_TITLE;
   }, [exam]);
   if (!exam) return <Navigate to="/" replace />;
   return (
@@ -132,7 +132,11 @@ function ExamShell() {
   }, [pathname]);
   useEffect(() => {
     if (!menuOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault(); // Esc закрывает меню и больше ничего: карточки на него не отзываются
+      setMenuOpen(false);
+    };
     const onClick = (e: MouseEvent) => {
       if (!headerRef.current?.contains(e.target as Node)) setMenuOpen(false);
     };

@@ -42,13 +42,15 @@ export function ProofsPage() {
             <ul className="plist">
               {ps.map((p) => (
                 <li key={p.key}>
-                  <StatusDot status={st.items[p.key]?.status ?? 'new'} /> <LevelMark level={p.level} />{' '}
-                  <Link to={path(`/proofs/${p.unit.id}`)}>{p.unit.title}</Link>{' '}
-                  <span className="muted small">
-                    · {count(p.unit.proof!.steps.length, 'шаг', 'шага', 'шагов')}
+                  <span className="plist-title">
+                    <StatusDot status={st.items[p.key]?.status ?? 'new'} /> <LevelMark level={p.level} />{' '}
+                    <Link to={path(`/proofs/${p.unit.id}`)}>{p.unit.title}</Link>
+                    {p.unit.aux && <> <span className="tag">лемма</span></>}
+                  </span>
+                  <span className="plist-meta">
+                    {count(p.unit.proof!.steps.length, 'шаг', 'шага', 'шагов')}
                     {cat.lemmaChain(p.unit).length > 0 && ` + ${count(cat.lemmaChain(p.unit).length, 'лемма', 'леммы', 'лемм')}`}
                   </span>
-                  {p.unit.aux && <span className="tag">лемма</span>}
                 </li>
               ))}
             </ul>

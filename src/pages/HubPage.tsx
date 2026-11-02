@@ -78,10 +78,14 @@ function ExamCard({ exam }: { exam: Exam }) {
           <Countdown exam={exam} />
         </div>
         <div className="exam-subject">{exam.subject}</div>
-        <div className="muted small">
-          {exam.when} · {exam.format}
-        </div>
-        <div className="muted small">{exam.scope}</div>
+        <dl className="exam-facts">
+          <dt>Когда</dt>
+          <dd>{exam.when}</dd>
+          <dt>Формат</dt>
+          <dd>{exam.format}</dd>
+          <dt>Темы</dt>
+          <dd>{exam.scope}</dd>
+        </dl>
         <div className="exam-bars">
           <div>
             <div className="bar-head label">

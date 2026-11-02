@@ -4,7 +4,7 @@ import type { Kind } from '../content/schema';
 import { readiness, score, taskKey, type Readiness } from '../engine/catalog';
 import { useCat, usePath } from '../exam';
 import { useProgress } from '../store/progress';
-import { Star } from '../ui/LevelSwitch';
+import { Star, StatusDot } from '../ui/LevelSwitch';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Ring } from '../ui/Ring';
 import { Countdown } from './HubPage';
@@ -146,7 +146,6 @@ export function HomePage() {
 }
 
 function Meter({ title, known, total, r }: { title: string; known: string; total: number; r: Readiness }) {
-  const rest = [r.shaky ? `частично ${r.shaky}` : '', r.weak ? `не знаю ${r.weak}` : ''].filter(Boolean).join(' · ');
   return (
     <div className="meter">
       {/* Длина дуги равна проценту: «частично» идёт за половину, как и в самом проценте. */}
@@ -158,7 +157,20 @@ function Meter({ title, known, total, r }: { title: string; known: string; total
         <div className="meter-sub">
           {r.known} из {total} {known}
         </div>
-        {rest && <div className="meter-sub">{rest}</div>}
+        {(r.shaky > 0 || r.weak > 0) && (
+          <div className="meter-sub meter-rest">
+            {r.shaky > 0 && (
+              <span>
+                <StatusDot status="shaky" /> частично {r.shaky}
+              </span>
+            )}
+            {r.weak > 0 && (
+              <span>
+                <StatusDot status="weak" /> не знаю {r.weak}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

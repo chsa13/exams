@@ -260,9 +260,18 @@ export function MockPage() {
     return (
       <div className="page">
         <div className={`timer ${left <= 0 && ANSWER_MIN !== null ? 'timer-over' : ''}`}>
-          {ANSWER_MIN === null ? 'Проверка' : `Ответ: ${left <= 0 ? 'время вышло' : clock(left)}`} · {exam.levels ? <><Star scale="red" />{' '}</> : exam.star && <><Star scale={exam.star} />{' '}</>}
-          {fmt(t.red)}/{fmt(t.redMax)}
-          {mode === 'all' && exam.levels && <> · <Star scale="black" /> {fmt(t.black)}/{fmt(t.blackMax)}</>}
+          <span>{ANSWER_MIN === null ? 'Проверка' : `Ответ: ${left <= 0 ? 'время вышло' : clock(left)}`}</span>
+          <span className="timer-score">
+            <span>
+              {exam.levels ? <><Star scale="red" />{' '}</> : exam.star && <><Star scale={exam.star} />{' '}</>}
+              {fmt(t.red)}/{fmt(t.redMax)}
+            </span>
+            {mode === 'all' && exam.levels && (
+              <span>
+                <Star scale="black" /> {fmt(t.black)}/{fmt(t.blackMax)}
+              </span>
+            )}
+          </span>
         </div>
         <p className="muted small">
           {isTest

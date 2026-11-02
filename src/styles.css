@@ -32,9 +32,11 @@
   --radius: 12px;
   --radius-sm: 8px;
   --shadow: 0 1px 2px rgb(28 27 25 / 0.05);
+  --plate-border: transparent;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --top-h: 89px;
   --star-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 2v12M2.8 5l10.4 6M13.2 5 2.8 11' fill='none' stroke='%23000' stroke-width='3.2' stroke-linecap='round'/%3E%3C/svg%3E");
+  --check-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5 6.5 12 13 4.5' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   color-scheme: light;
 }
 
@@ -258,8 +260,46 @@ kbd {
   background: var(--surface-2);
 }
 
+/* Галочка одна на весь сайт: системная в разных браузерах разная и не закругляется. */
 input[type='checkbox'] {
-  accent-color: var(--accent);
+  appearance: none;
+  flex: none;
+  display: inline-grid;
+  place-content: center;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  cursor: pointer;
+  transition:
+    background-color 140ms var(--ease),
+    border-color 140ms var(--ease);
+}
+input[type='checkbox']::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  background: var(--on-accent);
+  -webkit-mask: var(--check-mask) center / contain no-repeat;
+  mask: var(--check-mask) center / contain no-repeat;
+  transform: scale(0);
+  transition: transform 140ms var(--ease);
+}
+input[type='checkbox']:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+input[type='checkbox']:checked::before {
+  transform: scale(1);
+}
+.chk:hover input[type='checkbox']:not(:checked) {
+  border-color: var(--accent);
+}
+.chk:hover input[type='checkbox']:checked {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 select,
 .search {
@@ -278,6 +318,20 @@ select,
 select:hover,
 .search:hover {
   border-color: var(--border-strong);
+}
+/* своя стрелка: системная прижата к краю. Рисуем токеном, чтобы она менялась с темой. */
+select {
+  appearance: none;
+  padding-right: 36px;
+  background-image:
+    linear-gradient(45deg, transparent calc(50% - 1px), var(--muted) calc(50% - 1px), var(--muted) calc(50% + 1px), transparent calc(50% + 1px)),
+    linear-gradient(-45deg, transparent calc(50% - 1px), var(--muted) calc(50% - 1px), var(--muted) calc(50% + 1px), transparent calc(50% + 1px));
+  background-size: 7px 7px;
+  background-position:
+    right 18px center,
+    right 12px center;
+  background-repeat: no-repeat;
+  text-overflow: ellipsis;
 }
 .search {
   width: 100%;
@@ -378,7 +432,7 @@ select:hover,
   display: flex;
   gap: 16px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--plate-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 20px;
@@ -395,6 +449,7 @@ select:hover,
 }
 .exam-past {
   background: transparent;
+  border-color: var(--border);
   box-shadow: none;
 }
 .exam-past .exam-title {
@@ -451,6 +506,21 @@ select:hover,
   line-height: 20px;
   color: var(--text-2);
   margin: 0 0 4px;
+}
+.exam-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 2px 12px;
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+.exam-facts dt {
+  color: var(--muted);
+}
+.exam-facts dd {
+  margin: 0;
+  color: var(--text-2);
 }
 .exam-bars {
   display: grid;
@@ -686,7 +756,8 @@ select:hover,
   display: flex;
   margin-top: 24px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--plate-border);
+  box-shadow: var(--shadow);
   border-radius: var(--radius);
 }
 .stat {
@@ -736,6 +807,11 @@ select:hover,
   line-height: 20px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+.meter-rest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 12px;
 }
 .ring {
   position: relative;
@@ -831,7 +907,8 @@ select:hover,
 /* Карта готовности — главное цветное место сайта: ячейки впритык, как клетки тетради. */
 .grid-table {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--plate-border);
+  box-shadow: var(--shadow);
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -906,7 +983,8 @@ select:hover,
 .ready-list {
   display: none;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--plate-border);
+  box-shadow: var(--shadow);
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -939,7 +1017,8 @@ select:hover,
 }
 .panel {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--plate-border);
+  box-shadow: var(--shadow);
   border-radius: var(--radius);
   padding: 20px;
   margin: 16px 0;
@@ -989,7 +1068,8 @@ select:hover,
 .topic-card {
   display: block;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--plate-border);
+  box-shadow: var(--shadow);
   border-radius: var(--radius);
   padding: 16px 20px;
   color: var(--text);
@@ -1006,6 +1086,15 @@ select:hover,
 .topic-title {
   font-weight: 500;
 }
+.topic-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
 .hits {
   padding-left: 20px;
 }
@@ -1016,7 +1105,8 @@ select:hover,
 }
 .unit {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--plate-border);
+  box-shadow: var(--shadow);
   border-radius: var(--radius);
   padding: 20px;
   margin: 16px 0;
@@ -1158,7 +1248,21 @@ select:hover,
   padding: 0;
 }
 .plist li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
   padding: 4px 0;
+}
+.plist-title {
+  min-width: 0;
+}
+.plist-meta {
+  flex: none;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 .trainer .block {
   margin: 16px 0;
@@ -1225,7 +1329,7 @@ select:hover,
 .card {
   scroll-margin-top: calc(var(--top-h) + 8px);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--plate-border);
   border-radius: 16px;
   padding: 24px 32px;
   box-shadow: var(--shadow);
@@ -1240,6 +1344,56 @@ select:hover,
   flex-wrap: wrap;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+.keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  margin-top: 16px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted);
+}
+.keys-title {
+  color: var(--text-2);
+  font-weight: 500;
+}
+.keys kbd {
+  margin-right: 4px;
+}
+.card-where {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 12px;
+  min-width: 0;
+}
+.card-pos {
+  color: var(--text);
+  font-weight: 500;
+}
+.card-tools {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 -8px;
+}
+button.tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 0;
+  padding: 2px 8px;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+}
+button.tool:hover {
+  background: var(--accent-soft);
 }
 .card-q {
   padding: 24px 0 16px;
@@ -1324,7 +1478,8 @@ select:hover,
 }
 .empty {
   background: var(--surface);
-  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--plate-border);
   border-radius: var(--radius);
   padding: 32px;
   text-align: center;
@@ -1369,7 +1524,8 @@ select:hover,
 /* --- tasks --- */
 .task {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--plate-border);
+  box-shadow: var(--shadow);
   border-radius: var(--radius);
   padding: 20px;
   margin: 12px 0;
@@ -1381,6 +1537,24 @@ select:hover,
   gap: 4px 8px;
   font-size: 14px;
   line-height: 20px;
+}
+.task-topic {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--muted);
+}
+.task-points {
+  margin-left: auto;
+  color: var(--accent);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.task-source {
+  margin-left: auto;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted);
+  text-align: right;
 }
 .task-n {
   font-size: 15px;
@@ -1411,6 +1585,14 @@ select:hover,
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+.timer-score {
+  display: flex;
+  gap: 16px;
 }
 /* Чёрная ✱ сливается с фоном таймера, а на красном фоне — и красная. */
 .timer .star-black {
@@ -1436,7 +1618,8 @@ p.timer-over {
 }
 .tq {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--plate-border);
+  box-shadow: var(--shadow);
   border-radius: var(--radius);
   padding: 16px 20px;
   margin: 8px 0;
@@ -1538,6 +1721,10 @@ p.timer-over {
 }
 
 @media (max-width: 600px) {
+  .task-topic {
+    flex: 0 0 100%;
+    order: 1;
+  }
   h1 {
     font-size: 24px;
     line-height: 32px;
@@ -1558,6 +1745,7 @@ p.timer-over {
     scrollbar-color: var(--border) transparent;
   }
   /* Клавиш на телефоне нет, а цифры съедают ширину кнопок. */
+  .keys,
   kbd {
     display: none;
   }

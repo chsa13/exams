@@ -87,10 +87,8 @@ export function TaskCard({ task, n, showGrade = true }: { task: Task; n?: number
         {n !== undefined && <span className="task-n">{n}</span>}
         <ScaleMark scales={task.scales} />
         <span className="tag">{TASK_TYPE_LABEL[task.type]}</span>
-        <span className="muted small">
-          {fmt(task.points)} б. · {cat.topicById.get(task.topic)?.title}
-          {task.source ? ` · ${task.source}` : ''}
-        </span>
+        <span className="task-topic">{cat.topicById.get(task.topic)?.title}</span>
+        <span className="task-points">{fmt(task.points)} б.</span>
         <StatusDot status={st.items[key]?.status ?? 'new'} />
       </header>
       <Md text={task.prompt} />
@@ -117,6 +115,7 @@ export function TaskCard({ task, n, showGrade = true }: { task: Task; n?: number
             Показать решение
           </button>
         )}
+        {task.source && <span className="task-source">{task.source}</span>}
       </div>
       {open && showGrade && <Grade itemKey={key} current={st.items[key]?.status} hotkeys={false} />}
     </article>

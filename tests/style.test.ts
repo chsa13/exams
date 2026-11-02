@@ -91,7 +91,7 @@ describe('exam texts follow one style', () => {
 });
 
 describe('UI strings', () => {
-  it('no emoji level marks or «пробник» in src (comments aside)', () => {
+  it('no emoji level marks, «пробник» or · separators in src (comments aside)', () => {
     for (const f of files('src', /\.tsx?$/)) {
       readFileSync(f, 'utf8')
         .split('\n')
@@ -99,7 +99,7 @@ describe('UI strings', () => {
           const t = line.trim();
           if (/^(\/\/|\/\*|\*|\{\/\*)/.test(t)) return;
           const code = t.replace(/\s\/\/.*$/, '');
-          for (const re of BANNED) expect(code, `${f}:${i + 1}`).not.toMatch(re);
+          for (const re of [...BANNED, /·/]) expect(code, `${f}:${i + 1}`).not.toMatch(re);
         });
     }
   });
@@ -163,6 +163,18 @@ describe('styles.css follows the design rules', () => {
     const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
     return (hi + 0.05) / (lo + 0.05);
   };
+
+  it('checkboxes and selects are drawn by the site, not the system', () => {
+    for (const selector of [/input\[type='checkbox'\] \{[^}]*\}/, /(?:^|\n)select \{[^}]*\}/]) {
+      expect(css.match(selector)?.[0]).toContain('appearance: none');
+    }
+  });
+
+  it('white plates have no grey border', () => {
+    for (const plate of ['exam-card', 'card', 'task', 'panel', 'topic-card', 'unit', 'tq']) {
+      expect(css.match(new RegExp(`(?:^|\\n)\\.${plate} \\{[^}]*\\}`))?.[0], plate).toContain('var(--plate-border)');
+    }
+  });
 
   it('text on solid fills reaches 4.5:1 in both themes', () => {
     for (const block of [light, dark]) {

@@ -42,7 +42,10 @@ export function TopicsPage() {
           return (
             <Link key={t.id} to={p(`/topic/${t.id}`)} className="topic-card">
               <div className="topic-title">{t.title}</div>
-              <div className="muted small">{cat.exam.sourceLabel ?? 'Лонгрид'} {t.longread} · {count(keys.length, 'вопрос', 'вопроса', 'вопросов')}</div>
+              <div className="topic-meta">
+                <span>{cat.exam.sourceLabel ?? 'Лонгрид'} {t.longread}</span>
+                <span>{count(keys.length, 'вопрос', 'вопроса', 'вопросов')}</span>
+              </div>
               <ProgressBar r={readiness(keys, st)} />
             </Link>
           );

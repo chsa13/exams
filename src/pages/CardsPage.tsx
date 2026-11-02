@@ -94,18 +94,35 @@ export function CardsPage() {
     else window.scrollTo(0, 0);
   }, [cardKey, pos]);
 
+  // Фокус поставлен клавишей Tab, а не остался от клика мышью: только тогда элемент в фокусе отвечает на пробел сам.
+  const viaTab = useRef(false);
   useEffect(() => {
+    const onPointer = () => {
+      viaTab.current = false;
+    };
     const h = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+      if (e.key === 'Tab') viaTab.current = true;
+      if (e.key === 'Escape' && !e.defaultPrevented && !(e.target instanceof HTMLSelectElement)) {
+        setSession((s) => (s.pos > 0 ? { ...s, pos: s.pos - 1, step: 0 } : s));
+        return;
+      }
+      if (e.target instanceof HTMLSelectElement) return;
       if (e.key === ' ' || e.key === 'Enter') {
-        // Кнопка или ссылка в фокусе срабатывает сама, иначе с клавиатуры по ней не перейти.
-        if (e.target instanceof Element && e.target.closest('a, button')) return;
+        const el = e.target instanceof HTMLElement ? e.target.closest<HTMLElement>('a, button, input') : null;
+        // Кнопка и галочка срабатывают сами, ссылка — только по Enter: пробел на ней листал бы страницу.
+        if (el && viaTab.current && (e.key === 'Enter' || el.tagName !== 'A')) return;
+        // Фокус остался от клика: иначе пробел повторил бы «Пропустить» или переключил галочку.
+        el?.blur();
         e.preventDefault();
         setStep((x) => (x === 0 || x === 2 ? x + 1 : x));
       }
     };
     window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
+    window.addEventListener('pointerdown', onPointer);
+    return () => {
+      window.removeEventListener('keydown', h);
+      window.removeEventListener('pointerdown', onPointer);
+    };
   }, []);
 
   const toggleKind = (k: Kind) => {
@@ -157,17 +174,31 @@ export function CardsPage() {
       ) : (
         <div className="card" ref={cardRef}>
           <div className="card-meta">
-            <span>
-              {pos + 1} / {queue.length}{' '}
-              <button className="link small" onClick={shuffleRest} title="Перемешать оставшиеся карточки">
-                перемешать
-              </button>{' '}
-              ·{' '}
-              <button className="link small" onClick={() => confirm('Начать заново? Порядок карточек пересоберётся: сначала слабые.') && restart()}>
-                начать заново
+            <span className="card-where">
+              <span className="card-pos">
+                {pos + 1} / {queue.length}
+              </span>
+              <span>{card.topic.title}</span>
+            </span>
+            <span className="card-tools">
+              <button className="tool" onClick={shuffleRest} title="Перемешать оставшиеся карточки">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22" />
+                  <path d="m18 2 4 4-4 4" />
+                  <path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2" />
+                  <path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8" />
+                  <path d="m18 14 4 4-4 4" />
+                </svg>
+                Перемешать
+              </button>
+              <button className="tool" onClick={() => confirm('Начать заново? Порядок карточек пересоберётся: сначала слабые.') && restart()}>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+                Начать заново
               </button>
             </span>
-            <span className="muted">{card.topic.title}</span>
           </div>
           <div className="card-q">
             <div className="card-kind">
@@ -208,6 +239,26 @@ export function CardsPage() {
               Пропустить →
             </button>
           </div>
+        </div>
+      )}
+      {card && (
+        <div className="keys">
+          <span className="keys-title">Можно без мыши:</span>
+          <span>
+            <kbd>пробел</kbd> показать ответ
+          </span>
+          <span>
+            <kbd>1</kbd> не знаю
+          </span>
+          <span>
+            <kbd>2</kbd> частично
+          </span>
+          <span>
+            <kbd>3</kbd> знаю
+          </span>
+          <span>
+            <kbd>Esc</kbd> прошлая карточка
+          </span>
         </div>
       )}
       <p className="muted small">Порядок: сначала «не знаю», затем новые, «частично», «знаю».</p>
