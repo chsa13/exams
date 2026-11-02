@@ -140,6 +140,24 @@ export class ProgressStore {
     this.set(normalize(parsed));
   }
 
+  /** Прогресс из ссылки вместо своего. */
+  replace(next: State) {
+    this.set(normalize(next));
+  }
+
+  /** Прогресс из ссылки вместе со своим: по каждому вопросу остаётся более свежая отметка. */
+  merge(other: State) {
+    const items = { ...this.state.items };
+    for (const [key, item] of Object.entries(other.items)) {
+      if (!items[key] || item.last > items[key].last) items[key] = item;
+    }
+    // В ссылке дата с точностью до дня, поэтому свой пробный вариант узнаём по дню и баллам.
+    const id = (m: MockResult) => [Math.floor(m.date / 86_400_000), m.mode, m.red, m.redMax, m.black, m.blackMax].join();
+    const own = new Set(this.state.mocks.map(id));
+    const mocks = [...this.state.mocks, ...other.mocks.filter((m) => !own.has(id(m)))].sort((a, b) => a.date - b.date);
+    this.set({ ...this.state, items, mocks });
+  }
+
   reset() {
     this.set({ ...empty(), mode: this.state.mode });
   }

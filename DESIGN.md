@@ -40,7 +40,7 @@
 Vite + React + TypeScript   — SPA, BrowserRouter с base /exams/: / — список экзаменов, /<id>/… — раздел экзамена. Для GitHub Pages сборка кладёт копию index.html на каждый адрес и 404.html (vite.config.ts); старые ссылки с #/ переадресуются (main.tsx). Ссылки в текстах — от корня сайта: [Карточки](/<id>/cards)
 KaTeX + marked              — формулы и Markdown
 content/<id>/*.ts           — контент, типизирован схемой src/content/schema.ts
-localStorage                — прогресс, отдельно на экзамен (экспорт/импорт JSON)
+localStorage                — прогресс, отдельно на экзамен (экспорт/импорт JSON, ссылка с прогрессом после # — store/share.ts)
 GitHub Pages                — деплой из main (.github/workflows/pages.yml), сначала тесты
 ```
 
