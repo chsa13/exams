@@ -1345,6 +1345,12 @@ select {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+.qr {
+  display: block;
+  max-width: 100%;
+  margin-top: 16px;
+  border-radius: var(--radius-sm);
+}
 .keys {
   display: flex;
   flex-wrap: wrap;
@@ -1529,6 +1535,9 @@ button.tool:hover {
   border-radius: var(--radius);
   padding: 20px;
   margin: 12px 0;
+  /* Задач бывает больше сотни: карточки за пределами экрана браузер не считает и не рисует. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
 }
 .task-head {
   display: flex;

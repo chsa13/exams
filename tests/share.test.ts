@@ -1,3 +1,4 @@
+import qrcode from 'qrcode-generator';
 import { describe, expect, it } from 'vitest';
 import { exams } from '../content';
 import { Catalog, taskKey } from '../src/engine/catalog';
@@ -40,6 +41,9 @@ describe('progress link', () => {
     const text = encodeShare(id, { version: 1, mode: 'all', items, mocks });
     expect(text.length + 100).toBeLessThan(4096); // 100 — запас на адрес сайта
     expect(Object.keys(decodeShare(id, text, keys)!.items)).toHaveLength(keys.length);
+    const qr = qrcode(0, 'L');
+    qr.addData(`https://chsa13.github.io/exams/${id}/settings#p=${text}`, 'Byte');
+    expect(() => qr.make()).not.toThrow();
   });
 
   it.each(['', '!!!', 'AA', 'AQAA', 'AgAA', 'AQAAAAAA'])('rejects a broken link %j', (bad) => {

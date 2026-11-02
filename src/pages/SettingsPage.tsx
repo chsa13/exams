@@ -4,6 +4,7 @@ import { taskKey } from '../engine/catalog';
 import { useProgress, useStore, type State } from '../store/progress';
 import { clearShareHash, readShareHash, shareUrl } from '../store/share';
 import { LevelSwitch, Star } from '../ui/LevelSwitch';
+import { QrCode } from '../ui/QrCode';
 import { count } from '../plural';
 
 const hasProgress = (s: State) => Object.keys(s.items).length > 0 || s.mocks.length > 0;
@@ -18,6 +19,7 @@ export function SettingsPage() {
   const st = useProgress();
   const [msg, setMsg] = useState('');
   const [link, setLink] = useState('');
+  const [showQr, setShowQr] = useState(false);
   const readLink = () => readShareHash(exam.id, location.hash, [...cat.facetByKey.keys(), ...exam.tasks.map(taskKey)]);
   const [shared, setShared] = useState<State | 'bad' | null>(readLink);
 
@@ -124,6 +126,9 @@ export function SettingsPage() {
           <button className="primary" disabled={!hasProgress(st)} onClick={copyLink}>
             Скопировать ссылку
           </button>
+          <button disabled={!hasProgress(st)} aria-expanded={showQr} onClick={() => setShowQr(!showQr)}>
+            {showQr ? 'Скрыть QR-код' : 'Показать QR-код'}
+          </button>
           <button onClick={download}>Скачать прогресс</button>
           <label className="btn">
             Загрузить файл
@@ -141,6 +146,12 @@ export function SettingsPage() {
             Сбросить
           </button>
         </div>
+        {showQr && hasProgress(st) && (
+          <>
+            <QrCode text={shareUrl(exam.id, st)} />
+            <p className="muted small">Наведи камеру телефона на код: откроется этот экзамен с твоим прогрессом.</p>
+          </>
+        )}
         {link && <input className="search" readOnly value={link} aria-label="Ссылка на прогресс" onFocus={(e) => e.target.select()} />}
         {msg && <p className="small">{msg}</p>}
       </section>
