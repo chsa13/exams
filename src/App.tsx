@@ -27,6 +27,10 @@ function ScrollTop() {
     window.scrollTo(0, 0);
   }, [pathname, search]);
   useEffect(() => {
+    // Новая страница начинается как после загрузки: фокус на старой ссылке меню перехватывал бы клавиши.
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  }, [pathname]);
+  useEffect(() => {
     // заголовок страницы выставляют эффекты раздела, поэтому читаем его чуть позже
     const t = setTimeout(() => trackPage(pathname, document.title), 0);
     return () => clearTimeout(t);

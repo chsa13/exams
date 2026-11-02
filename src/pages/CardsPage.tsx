@@ -106,21 +106,28 @@ export function CardsPage() {
         setSession((s) => (s.pos > 0 ? { ...s, pos: s.pos - 1, step: 0 } : s));
         return;
       }
+    };
+    // Ловим раньше всех и дальше не пускаем: иначе пробел успевают обработать другие (например, расширения браузера).
+    const onReveal = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLSelectElement) return;
-      if (e.key === ' ' || e.key === 'Enter') {
+      const space = e.key === ' ' || e.code === 'Space';
+      if (space || e.key === 'Enter') {
         const el = e.target instanceof HTMLElement ? e.target.closest<HTMLElement>('a, button, input') : null;
         // Кнопка и галочка срабатывают сами, ссылка — только по Enter: пробел на ней листал бы страницу.
-        if (el && viaTab.current && (e.key === 'Enter' || el.tagName !== 'A')) return;
+        if (el && viaTab.current && (!space || el.tagName !== 'A')) return;
         // Фокус остался от клика: иначе пробел повторил бы «Пропустить» или переключил галочку.
         el?.blur();
         e.preventDefault();
+        e.stopPropagation();
         setStep((x) => (x === 0 || x === 2 ? x + 1 : x));
       }
     };
     window.addEventListener('keydown', h);
+    window.addEventListener('keydown', onReveal, true);
     window.addEventListener('pointerdown', onPointer);
     return () => {
       window.removeEventListener('keydown', h);
+      window.removeEventListener('keydown', onReveal, true);
       window.removeEventListener('pointerdown', onPointer);
     };
   }, []);
