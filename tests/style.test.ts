@@ -103,6 +103,14 @@ describe('UI strings', () => {
         });
     }
   });
+
+  it('a group where several options can be picked is MultiSeg, not a row of checkboxes', () => {
+    for (const f of files('src', /\.tsx$/)) {
+      // Галочка внутри .map(...) — это группа галочек; одиночные вкл/выкл остаются галочками.
+      const src = readFileSync(f, 'utf8');
+      expect(src, f).not.toMatch(/\.map\([^)]*\)\s*=>\s*\(?\s*<label[^>]*>\s*<input type="checkbox"/);
+    }
+  });
 });
 
 // Правила оформления — CLAUDE.md, §7, подраздел «Оформление».

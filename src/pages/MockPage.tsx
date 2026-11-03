@@ -351,7 +351,7 @@ export function MockPage() {
             К банку задач
           </Link>
         ) : (
-          <Link className="btn" to={path('/cards?last=1&kind=definition,statement,proof')}>
+          <Link className="btn" to={path('/cards?status=weak,shaky&kind=definition,statement,proof')}>
             Повторить слабое
           </Link>
         )}

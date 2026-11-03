@@ -1317,6 +1317,44 @@ select {
   align-items: center;
   margin: 8px 0 16px;
 }
+/* Можно выбрать несколько (`MultiSeg`): тот же переключатель; выключенный пункт — серый текст, точка статуса полая. */
+.filters + .filters {
+  margin-top: -4px;
+}
+.seg-multi {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.seg-multi button {
+  gap: 8px;
+}
+.seg-multi button:not(.on) .dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.seg-count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+/* Список тем рядом с переключателем: занимает остаток строки, длинное название обрезается. */
+.seg-multi + select {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+/* На телефоне — ровная сетка в два столбца; нечётный последний пункт на всю ширину. */
+@media (max-width: 600px) {
+  .seg-multi {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+  .seg-multi button {
+    justify-content: center;
+  }
+  .seg-multi button:last-child:nth-child(odd) {
+    grid-column: span 2;
+  }
+}
 .chk {
   display: inline-flex;
   align-items: center;

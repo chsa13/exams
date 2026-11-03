@@ -5,19 +5,24 @@ import { orderByPriority, type Catalog, type Facet } from '../engine/catalog';
 import { loadSession, saveSession, type CardSession } from '../store/cardSession';
 import { shuffle } from '../engine/ticket';
 import { useCat, usePath } from '../exam';
-import { useProgress, useStore } from '../store/progress';
+import { useProgress, useStore, type Status } from '../store/progress';
 import { FacetBody, UsesLinks } from '../ui/FacetView';
 import { Md } from '../ui/Md';
 import { Grade } from '../ui/Grade';
-import { LevelMark, StatusDot } from '../ui/LevelSwitch';
+import { LevelMark, STATUS_LABEL, StatusDot } from '../ui/LevelSwitch';
 import { count } from '../plural';
 import { revealTop } from '../ui/scroll';
+import { MultiSeg } from '../ui/MultiSeg';
 
 const ASK: Record<Kind, string> = {
   definition: 'Дай определение',
   statement: 'Сформулируй',
   proof: 'Докажи — вспомни шаги',
 };
+
+/** Фильтр по статусу: порядок как у кнопок оценки, «новое» в конце. */
+const STATUSES: Status[] = ['weak', 'shaky', 'known', 'new'];
+const WEAK: Status[] = ['weak', 'shaky'];
 
 /** Что спросить по карточке: у теоремы с доказательством — формулировку и доказательство сразу. */
 function askFor(cat: Catalog, f: Facet): string {
@@ -37,7 +42,12 @@ export function CardsPage() {
   const topic = sp.get('topic') ?? '';
   const kindParam = sp.get('kind');
   const kinds: Kind[] = kindParam ? (kindParam.split(',') as Kind[]) : ['definition', 'statement', 'proof'];
-  const onlyWeak = sp.get('last') === '1';
+  // `last=1` — старая ссылка на слабые карточки: «не знаю» и «частично».
+  const statusParam = sp.get('status')?.split(',') ?? [];
+  const picked = STATUSES.filter((x) => statusParam.includes(x));
+  const statuses: Status[] = picked.length ? picked : sp.get('last') === '1' ? WEAK : STATUSES;
+  const allStatuses = statuses.length === STATUSES.length;
+  const onlyWeak = statuses.length === WEAK.length && WEAK.every((x) => statuses.includes(x));
 
   const update = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams(sp);
@@ -50,19 +60,31 @@ export function CardsPage() {
 
   // Очередь строится один раз на набор фильтров (оценки не перетасовывают её на ходу)
   // и сохраняется в браузере: после перезагрузки продолжаем с той же карточки.
-  const filterKey = `${st.mode}|${topic}|${kinds.join(',')}|${onlyWeak}`;
-  const buildQueue = (): string[] => {
-    const s = store.get();
+  // Сохранённые сессии помнят прежний ключ с true/false на месте статусов: для этих двух наборов он не меняется.
+  const statusKey = allStatuses ? 'false' : onlyWeak ? 'true' : statuses.join(',');
+  const filterKey = `${st.mode}|${topic}|${kinds.join(',')}|${statusKey}`;
+  /** Карточки под вид и тему, без фильтра по статусу. */
+  const basePool = (s: typeof st): Facet[] => {
     const visible = cat.visibleFacets(s.mode);
     // Если доказательства в наборе, теорема спрашивается одной карточкой «сформулируй и докажи».
     const withProof = new Set(kinds.includes('proof') ? visible.filter((f) => f.kind === 'proof').map((f) => f.unit.id) : []);
-    let pool = visible.filter(
+    return visible.filter(
       (f) => kinds.includes(f.kind) && (!topic || f.topic.id === topic) && !(f.kind === 'statement' && withProof.has(f.unit.id)),
     );
-    const weak = (key: string) => ['weak', 'shaky'].includes(s.items[key]?.status ?? 'new');
-    if (onlyWeak) pool = pool.filter((f) => weak(f.key) || (isCombined(cat, f) && weak(`${f.unit.id}:statement`)));
+  };
+  /** Статусы карточки; у теоремы «формулировка + доказательство» — обеих частей, подходит любая. */
+  const cardStatuses = (s: typeof st, f: Facet): Status[] => {
+    const of = (key: string) => s.items[key]?.status ?? 'new';
+    return isCombined(cat, f) ? [of(f.key), of(`${f.unit.id}:statement`)] : [of(f.key)];
+  };
+  const buildQueue = (): string[] => {
+    const s = store.get();
+    let pool = basePool(s);
+    if (!allStatuses) pool = pool.filter((f) => cardStatuses(s, f).some((x) => statuses.includes(x)));
     return orderByPriority(pool, (f) => f.key, s).map((f) => f.key);
   };
+  const base = basePool(st);
+  const statusCount = (x: Status) => base.filter((f) => cardStatuses(st, f).includes(x)).length;
   const fresh = (): CardSession => ({ fk: filterKey, keys: buildQueue(), pos: 0, step: 0, updated: Date.now() });
   const restoreOrFresh = (): CardSession => loadSession(examId, filterKey) ?? fresh();
 
@@ -132,23 +154,15 @@ export function CardsPage() {
     };
   }, []);
 
-  const toggleKind = (k: Kind) => {
-    const set = new Set(kinds);
-    if (set.has(k)) set.delete(k);
-    else set.add(k);
-    if (set.size === 0) return;
-    update({ kind: [...set].join(',') });
-  };
+  const kindItems = (['definition', 'statement', 'proof'] as Kind[]).filter((k) => cat.facets.some((f) => f.kind === k));
 
   return (
     <div className="page">
       <h1>Карточки</h1>
       <div className="filters">
-        {(['definition', 'statement', 'proof'] as Kind[]).filter((k) => cat.facets.some((f) => f.kind === k)).map((k) => (
-          <label key={k} className="chk">
-            <input type="checkbox" checked={kinds.includes(k)} onChange={() => toggleKind(k)} /> {KIND_LABEL[k]}
-          </label>
-        ))}
+        <MultiSeg items={kindItems} value={kinds} onChange={(list) => update({ kind: list.join(',') })} label="Что спрашивать">
+          {(k) => KIND_LABEL[k]}
+        </MultiSeg>
         <select value={topic} onChange={(e) => update({ topic: e.target.value })}>
           <option value="">Все темы</option>
           {cat.visibleTopics(st.mode).map((t) => (
@@ -157,15 +171,25 @@ export function CardsPage() {
             </option>
           ))}
         </select>
-        <label className="chk">
-          <input type="checkbox" checked={onlyWeak} onChange={(e) => update({ last: e.target.checked ? '1' : null })} /> Только «не знаю» и
-          «частично»
-        </label>
+      </div>
+      <div className="filters">
+        <MultiSeg
+          items={STATUSES}
+          value={statuses}
+          onChange={(list) => update({ last: null, status: list.length === STATUSES.length ? null : list.join(',') })}
+          label="Статус"
+        >
+          {(x) => (
+            <>
+              <StatusDot status={x} /> {STATUS_LABEL[x]} <span className="seg-count">{statusCount(x)}</span>
+            </>
+          )}
+        </MultiSeg>
       </div>
 
       {queue.length === 0 ? (
         <div className="empty">
-          {onlyWeak ? `Слабых мест не осталось — отлично! Сними фильтр или реши «${cat.exam.mock.title}».` : 'Под эти фильтры ничего не подходит.'}
+          {onlyWeak ? `Слабых мест не осталось — отлично! Отметь другие статусы или реши «${cat.exam.mock.title}».` : 'Под эти фильтры ничего не подходит.'}
         </div>
       ) : !card ? (
         <div className="empty">

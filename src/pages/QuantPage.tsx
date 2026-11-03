@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { makeQuestion, POINT_LABEL, randomProblem, VALUE_LABEL, type PointType, type ValueType } from '../engine/quant';
 import { Md } from '../ui/Md';
 import { revealTop } from '../ui/scroll';
+import { MultiSeg } from '../ui/MultiSeg';
 
 const POINTS = Object.keys(POINT_LABEL) as PointType[];
 const VALUES = Object.keys(VALUE_LABEL) as ValueType[];
@@ -33,10 +34,6 @@ export function QuantPage() {
     setStats((s) => ({ ok: s.ok + (i === q.correct ? 1 : 0), all: s.all + 1 }));
   };
 
-  const toggle = <T,>(xs: T[], x: T, set: (v: T[]) => void) => {
-    const n = xs.includes(x) ? xs.filter((y) => y !== x) : [...xs, x];
-    if (n.length) set(n);
-  };
 
   return (
     <div className="page">
@@ -52,19 +49,15 @@ export function QuantPage() {
         <summary>Настройки</summary>
         <div className="filters">
           <b className="small">Куда стремится аргумент:</b>
-          {POINTS.map((p) => (
-            <label key={p} className="chk">
-              <input type="checkbox" checked={points.includes(p)} onChange={() => toggle(points, p, setPoints)} /> {POINT_LABEL[p]}
-            </label>
-          ))}
+          <MultiSeg items={POINTS} value={points} onChange={setPoints} label="Куда стремится аргумент">
+            {(p) => POINT_LABEL[p]}
+          </MultiSeg>
         </div>
         <div className="filters">
           <b className="small">Значение предела:</b>
-          {VALUES.map((v) => (
-            <label key={v} className="chk">
-              <input type="checkbox" checked={values.includes(v)} onChange={() => toggle(values, v, setValues)} /> {VALUE_LABEL[v]}
-            </label>
-          ))}
+          <MultiSeg items={VALUES} value={values} onChange={setValues} label="Значение предела">
+            {(v) => VALUE_LABEL[v]}
+          </MultiSeg>
         </div>
         <div className="filters">
           <label className="chk">

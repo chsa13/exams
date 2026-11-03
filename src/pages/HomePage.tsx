@@ -89,7 +89,7 @@ export function HomePage() {
             определения и теоремы
           </Action>
         ) : (
-          <Action title="Слабые карточки" to={p('/cards?last=1')}>
+          <Action title="Слабые карточки" to={p('/cards?status=weak,shaky')}>
             {weakCount ? `${count(weakCount, 'вопрос', 'вопроса', 'вопросов')} с «не знаю» и «частично»` : 'пока нечего повторять'}
           </Action>
         )}
