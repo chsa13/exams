@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { KIND_LABEL, TASK_TYPE_LABEL, type TicketLayout } from '../content/schema';
 import { taskKey, type Catalog } from '../engine/catalog';
 import { gateFailed, generateMock, scoringOf, theoryPassed, totals, type SavedQuestion, type Scoring, type Section, type TicketQuestion } from '../engine/ticket';
@@ -36,6 +36,8 @@ function restore(cat: Catalog): { s: Saved; qs: TicketQuestion[] } | null {
     const raw = localStorage.getItem(storageKey(cat.exam.id, 'mock'));
     if (!raw) return null;
     const s = JSON.parse(raw) as Saved;
+    // Восстанавливаем только идущую попытку. Результат уже в истории (с разбором), а вернуться сюда — значит к вступлению.
+    if (s.stage !== 'prep' && s.stage !== 'answer') return null;
     const qs = unpack(cat, s.qs);
     if (qs.some((q) => !q.facet && !q.task)) return null;
     return { s, qs };
@@ -97,12 +99,24 @@ export function MockPage() {
   const attempt = st.mocks.find((m) => String(m.date) === sp.get('attempt') && m.qs?.length);
 
   // Этапы билета сменяются без смены адреса: каждый новый этап открываем сверху.
+  // Кнопка «История попыток» на результате ведёт к вступлению и сразу к таблице попыток.
+  const toHistory = useRef(false);
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const history = toHistory.current && stage === 'intro' ? document.getElementById('mock-history') : null;
+    toHistory.current = false;
+    if (history) history.scrollIntoView({ block: 'start' });
+    else window.scrollTo(0, 0);
   }, [stage]);
 
+  // Нажатие на вкладку пробного варианта с экрана результата (адрес тот же, меняется только location.key) —
+  // назад к вступлению с историей. Идущую попытку вкладка не сбрасывает.
+  const { key: locationKey } = useLocation();
   useEffect(() => {
-    if (stage === 'intro') {
+    setStage((s) => (s === 'result' ? 'intro' : s));
+  }, [locationKey]);
+
+  useEffect(() => {
+    if (stage === 'intro' || stage === 'result') {
       persist(exam.id, null);
       return;
     }
@@ -357,11 +371,23 @@ export function MockPage() {
 
   return (
     <div className="page page-narrow">
+      {/* Как в разборе из истории: ссылка наверху ведёт к началу пробного варианта, где история попыток. */}
+      <p className="small">
+        <Link to={path('/mock')}>← {spec.title}</Link>
+      </p>
       <h1>Результат</h1>
       <ResultSummary qs={qs} scores={scores} rules={rules} mode={mode} />
       <div className="row">
-        <button className="primary" onClick={() => setStage('intro')}>
-          Ещё раз
+        <button className="primary" onClick={start}>
+          {isTest ? 'Решить новую КР' : 'Решить новый билет'}
+        </button>
+        <button
+          onClick={() => {
+            toHistory.current = true;
+            setStage('intro');
+          }}
+        >
+          История попыток
         </button>
         {isTest ? (
           <Link className="btn" to={path('/tasks')}>
@@ -656,7 +682,7 @@ function MockHistory() {
   // Разбор есть у попыток, сохранённых вместе с вопросами; у старых и пришедших по ссылке — только баллы.
   const anyReview = st.mocks.some((m) => m.qs?.length);
   return (
-    <section>
+    <section id="mock-history" className="mock-history">
       <h3>История</h3>
       <table className="tbl">
         <thead>

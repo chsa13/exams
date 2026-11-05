@@ -2054,6 +2054,10 @@ p.timer-over {
 .mock-side {
   display: none;
 }
+/* к таблице попыток прокручивает кнопка «История попыток» на результате: не под шапку */
+.mock-history {
+  scroll-margin-top: calc(var(--top-h) + 16px);
+}
 .mock-clock {
   display: grid;
   gap: 2px;
