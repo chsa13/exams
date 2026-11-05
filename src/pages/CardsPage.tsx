@@ -13,7 +13,8 @@ import { LevelMark, STATUS_LABEL, StatusDot } from '../ui/LevelSwitch';
 import { count } from '../plural';
 import { revealTop } from '../ui/scroll';
 import { MultiSeg } from '../ui/MultiSeg';
-import { TopicPicker } from '../ui/TopicPicker';
+import { TopicPicker, topicsLabel } from '../ui/TopicPicker';
+import { Menu, SideFilters } from '../ui/Menu';
 
 const ASK: Record<Kind, string> = {
   definition: 'Дай определение',
@@ -164,17 +165,27 @@ export function CardsPage() {
   }, []);
 
   const kindItems = (['definition', 'statement', 'proof'] as Kind[]).filter((k) => cat.facets.some((f) => f.kind === k));
+  // Свёрнутые фильтры на узком экране: какие темы, сколько карточек и, если статус выбран не весь, — какой.
+  const filterSummary = [
+    topicsLabel(visibleTopics, topics),
+    ...(allStatuses ? [] : [onlyWeak ? 'слабые' : statuses.map((x) => STATUS_LABEL[x]).join(', ')]),
+    count(queue.length, 'карточка', 'карточки', 'карточек'),
+  ].join(', ');
 
   return (
-    <div className="page">
+    <div className="page page-side side-right">
       <h1>Карточки</h1>
+      <SideFilters summary={filterSummary}>
       <div className="filters">
+        <span className="side-label">Что спрашивать</span>
         <MultiSeg items={kindItems} value={kinds} onChange={(list) => update({ kind: list.join(',') })} label="Что спрашивать">
           {(k) => KIND_LABEL[k]}
         </MultiSeg>
+        <span className="side-label">Темы</span>
         <TopicPicker topics={visibleTopics} value={topics} onChange={(list) => update({ topic: list.join(',') })} counts={topicCount} />
       </div>
       <div className="filters">
+        <span className="side-label">Статус</span>
         <MultiSeg
           items={STATUSES}
           value={statuses}
@@ -188,6 +199,8 @@ export function CardsPage() {
           )}
         </MultiSeg>
       </div>
+      </SideFilters>
+      <div className="side-main">
 
       {queue.length === 0 ? (
         <div className="empty">
@@ -213,25 +226,40 @@ export function CardsPage() {
               </span>
               <span>{card.topic.title}</span>
             </span>
-            <span className="card-tools">
-              <button className="tool" onClick={shuffleRest} title="Перемешать оставшиеся карточки">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22" />
-                  <path d="m18 2 4 4-4 4" />
-                  <path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2" />
-                  <path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8" />
-                  <path d="m18 14 4 4-4 4" />
-                </svg>
-                Перемешать
-              </button>
-              <button className="tool" onClick={() => confirm('Начать заново? Порядок карточек пересоберётся: сначала слабые.') && restart()}>
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                  <path d="M3 3v5h5" />
-                </svg>
-                Начать заново
-              </button>
-            </span>
+            <Menu label="Ещё">
+              {(close) => (
+                <>
+                  <button
+                    onClick={() => {
+                      shuffleRest();
+                      close();
+                    }}
+                  >
+                    Перемешать оставшиеся
+                  </button>
+                  <button
+                    onClick={() => {
+                      close();
+                      if (confirm('Начать заново? Порядок карточек пересоберётся: сначала слабые.')) restart();
+                    }}
+                  >
+                    Начать заново
+                  </button>
+                  <div className="menu-note">Порядок: сначала «не знаю», затем новые, «частично», «знаю».</div>
+                  <div className="menu-note keys">
+                    <span>
+                      <kbd>пробел</kbd> показать ответ
+                    </span>
+                    <span>
+                      <kbd>1</kbd> не знаю, <kbd>2</kbd> частично, <kbd>3</kbd> знаю
+                    </span>
+                    <span>
+                      <kbd>Esc</kbd> прошлая карточка
+                    </span>
+                  </div>
+                </>
+              )}
+            </Menu>
           </div>
           <div className="card-q">
             <div className="card-kind">
@@ -281,27 +309,7 @@ export function CardsPage() {
           </div>
         </div>
       )}
-      {card && (
-        <div className="keys">
-          <span className="keys-title">Можно без мыши:</span>
-          <span>
-            <kbd>пробел</kbd> показать ответ
-          </span>
-          <span>
-            <kbd>1</kbd> не знаю
-          </span>
-          <span>
-            <kbd>2</kbd> частично
-          </span>
-          <span>
-            <kbd>3</kbd> знаю
-          </span>
-          <span>
-            <kbd>Esc</kbd> прошлая карточка
-          </span>
-        </div>
-      )}
-      <p className="muted small">Порядок: сначала «не знаю», затем новые, «частично», «знаю».</p>
+      </div>
     </div>
   );
 }

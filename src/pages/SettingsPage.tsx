@@ -1,30 +1,60 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
 import { useCat } from '../exam';
 import { taskKey } from '../engine/catalog';
-import { useProgress, useStore, type State } from '../store/progress';
+import { parseProgress, useProgress, useStore, type State } from '../store/progress';
 import { clearShareHash, readShareHash, shareUrl } from '../store/share';
 import { LevelSwitch, Star } from '../ui/LevelSwitch';
 import { QrCode } from '../ui/QrCode';
+import { setThemeChoice, useTheme, type ThemeChoice } from '../ui/ThemeToggle';
 import { count } from '../plural';
 
 const hasProgress = (s: State) => Object.keys(s.items).length > 0 || s.mocks.length > 0;
 
-const marks = (s: State) =>
-  `${count(Object.keys(s.items).length, 'отметка', 'отметки', 'отметок')}, ${count(s.mocks.length, 'пробный вариант', 'пробных варианта', 'пробных вариантов')}`;
+const markCount = (s: State) => count(Object.keys(s.items).length, 'отметка', 'отметки', 'отметок');
+const mockCount = (s: State) => count(s.mocks.length, 'пробный вариант', 'пробных варианта', 'пробных вариантов');
+const marks = (s: State) => `${markCount(s)} и ${mockCount(s)}`;
+
+/** Где показать ответ на действие: рядом с кнопкой, которую нажали. */
+type Place = 'top' | 'link' | 'file' | 'reset';
+type Notice = { at: Place; ok: boolean; text: string };
+/** Прогресс из ссылки или файла, который ждёт решения: объединить или заменить. */
+type Incoming = { state: State; from: 'link' | 'file' };
+
+const THEMES: [ThemeChoice, string][] = [
+  ['system', 'Как в системе'],
+  ['light', 'Светлая'],
+  ['dark', 'Тёмная'],
+];
 
 export function SettingsPage() {
   const cat = useCat();
   const { exam } = cat;
   const store = useStore();
   const st = useProgress();
-  const [msg, setMsg] = useState('');
+  const theme = useTheme();
+  const [notice, setNotice] = useState<Notice | null>(null);
   const [link, setLink] = useState('');
   const [showQr, setShowQr] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const readLink = () => readShareHash(exam.id, location.hash, [...cat.facetByKey.keys(), ...exam.tasks.map(taskKey)]);
-  const [shared, setShared] = useState<State | 'bad' | null>(readLink);
+  const [incoming, setIncoming] = useState<Incoming | null>(() => {
+    const s = readLink();
+    return s && s !== 'bad' ? { state: s, from: 'link' } : null;
+  });
+
+  const say = (at: Place, text: string, ok = true) => setNotice({ at, ok, text });
+  const noticeAt = (at: Place) =>
+    notice?.at === at && (
+      <p className={`notice ${notice.ok ? 'notice-ok' : 'notice-bad'}`} role="status">
+        {notice.text}
+      </p>
+    );
 
   // Раньше, чем сайт отправит статистику: данные из ссылки не должны оставаться в адресе.
-  useLayoutEffect(clearShareHash, []);
+  useLayoutEffect(() => {
+    if (readLink() === 'bad') say('top', 'Ссылка повреждена, прогресс не изменён.', false);
+    clearShareHash();
+  }, []);
 
   // Ссылку вставили в адрес на этой же странице: браузер не перезагружает её, меняется только часть после #.
   useEffect(() => {
@@ -32,37 +62,37 @@ export function SettingsPage() {
       const next = readLink();
       if (!next) return;
       clearShareHash();
-      setMsg('');
-      setShared(next);
+      if (next === 'bad') say('top', 'Ссылка повреждена, прогресс не изменён.', false);
+      else {
+        setNotice(null);
+        setIncoming({ state: next, from: 'link' });
+      }
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   });
 
-  const accept = (apply: (s: State) => void, s: State) => {
-    apply(s);
-    setShared(null);
-    setMsg(`Прогресс из ссылки загружен: ${marks(s)}.`);
+  const accept = (how: 'merge' | 'replace', { state, from }: Incoming) => {
+    if (how === 'merge') store.merge(state);
+    else store.replace(state);
+    setIncoming(null);
+    say('top', `Прогресс из ${from === 'link' ? 'ссылки' : 'файла'} загружен: ${marks(state)}.`);
   };
 
+  // Своего прогресса нет — спрашивать не о чем.
   useEffect(() => {
-    if (shared === 'bad') {
-      setShared(null);
-      setMsg('Ошибка: ссылка повреждена, прогресс не изменён.');
-    } else if (shared && !hasProgress(store.get())) {
-      accept(store.replace.bind(store), shared); // своего прогресса нет, спрашивать не о чем
-    }
-  }, [shared]);
+    if (incoming && !hasProgress(store.get())) accept('replace', incoming);
+  }, [incoming]);
 
   const copyLink = async () => {
     const url = shareUrl(exam.id, st);
     try {
       await navigator.clipboard.writeText(url);
       setLink('');
-      setMsg('Ссылка скопирована. Отправь её себе или другу.');
+      say('link', 'Ссылка скопирована. Отправь её себе или другу и открой на другом устройстве.');
     } catch {
       setLink(url); // буфер обмена недоступен: покажем ссылку, её можно скопировать руками
-      setMsg('');
+      setNotice(null);
     }
   };
 
@@ -73,6 +103,7 @@ export function SettingsPage() {
     a.download = `${exam.id}-progress-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
+    say('file', `Файл сохранён: ${marks(st)}.`);
   };
 
   const upload = (file: File) => {
@@ -82,79 +113,181 @@ export function SettingsPage() {
     file
       .text()
       .then((t) => {
-        store.importJson(t, ownKey);
-        setMsg('Прогресс загружен.');
+        setNotice(null);
+        setIncoming({ state: parseProgress(t, ownKey), from: 'file' });
+        window.scrollTo(0, 0); // вопрос «объединить или заменить» — наверху страницы
       })
-      .catch((e: Error) => setMsg(`Ошибка: ${e.message}`));
+      .catch((e: Error) => say('file', `${e.message}.`, false));
   };
 
+  const hasTasks = exam.features.includes('tasks');
+  const levelSize = (mode: 'basic' | 'all') => {
+    const q = count(cat.visibleFacets(mode).length, 'вопрос', 'вопроса', 'вопросов');
+    return hasTasks ? `${q} и ${count(cat.visibleTasks(mode).length, 'задача', 'задачи', 'задач')}` : q;
+  };
+  const any = hasProgress(st);
+
   return (
-    <div className="page">
-      <h1>Прогресс и настройки</h1>
-      <p className="muted">{exam.short}: прогресс у каждого экзамена свой.</p>
-      {shared && shared !== 'bad' && hasProgress(st) && (
-        <section className="panel">
-          <h3>Прогресс из ссылки</h3>
-          <p className="muted small">
-            В ссылке {marks(shared)}. Здесь уже есть {marks(st)}. «Объединить» оставит по каждому вопросу более свежую отметку, «Заменить» сотрёт твой прогресс.
+    <div className="page page-narrow settings">
+      <h1>Настройки</h1>
+      {noticeAt('top')}
+
+      {incoming && hasProgress(st) && (
+        <section className="panel panel-ask">
+          <h3>{incoming.from === 'link' ? 'Загрузить прогресс из ссылки?' : 'Загрузить прогресс из файла?'}</h3>
+          <p>
+            В {incoming.from === 'link' ? 'ссылке' : 'файле'} {marks(incoming.state)}. Здесь у тебя уже {marks(st)}.
           </p>
+          <ul className="settings-options">
+            <li>
+              <b>Объединить</b> — по каждому вопросу останется более свежая отметка, пробные варианты сложатся.
+            </li>
+            <li>
+              <b>Заменить</b> — твой прогресс здесь сотрётся, останется только загруженный.
+            </li>
+          </ul>
           <div className="row">
-            <button className="primary" onClick={() => accept(store.merge.bind(store), shared)}>
+            <button className="primary" onClick={() => accept('merge', incoming)}>
               Объединить
             </button>
-            <button onClick={() => accept(store.replace.bind(store), shared)}>Заменить</button>
-            <button onClick={() => setShared(null)}>Не загружать</button>
+            <button onClick={() => accept('replace', incoming)}>Заменить</button>
+            <button className="link" onClick={() => setIncoming(null)}>
+              Не загружать
+            </button>
           </div>
         </section>
       )}
-      {exam.levels && (
-      <section className="panel">
-        <h3>Уровень</h3>
-        <LevelSwitch />
-        <p className="muted small">
-          «Основной» прячет вопросы продвинутого уровня (<Star scale="black" />) везде: в справочнике, карточках, задачах и пробном билете.
-        </p>
+
+      {/* Настройки — как панель фильтров: одна белая панель на группу, строки «подпись слева, управление справа». */}
+      <section className="panel set-group">
+        <h3>Вид</h3>
+        {exam.levels && (
+          <SetRow
+            label="Уровень"
+            hint={
+              <>
+                <Star scale="red" /> {levelSize('basic')}, с <Star scale="black" /> — {levelSize('all')}. Только для этого экзамена.
+              </>
+            }
+          >
+            <LevelSwitch />
+          </SetRow>
+        )}
+        <SetRow label="Тема" hint="Одна на все экзамены.">
+          <div className="seg" role="radiogroup" aria-label="Тема">
+            {THEMES.map(([value, label]) => (
+              <button
+                key={value}
+                role="radio"
+                aria-checked={theme.choice === value}
+                className={theme.choice === value ? 'on' : ''}
+                onClick={() => setThemeChoice(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </SetRow>
       </section>
-      )}
-      <section className="panel">
-        <h3>Перенос прогресса</h3>
+
+      <section className="panel set-group">
+        <h3>Прогресс</h3>
         <p className="muted small">
-          Прогресс хранится только в этом браузере ({marks(st)}). Чтобы перенести его на другое устройство или поделиться, скопируй ссылку: кто её откроет,
-          получит такой же прогресс. В ссылке только отметки, на сервер она не попадает.
+          {exam.short}: {any ? marks(st) : 'пока ничего не отмечено'}, хранится только в этом браузере.
         </p>
-        <div className="row">
-          <button className="primary" disabled={!hasProgress(st)} onClick={copyLink}>
+        <SetRow
+          label="Ссылка"
+          hint="Открой на другом устройстве — там будет такой же прогресс. На сервер она не попадает."
+          below={
+            <>
+              {link && <input className="search" readOnly value={link} aria-label="Ссылка на прогресс" onFocus={(e) => e.target.select()} />}
+              {showQr && any && (
+                <div className="settings-qr">
+                  <QrCode text={shareUrl(exam.id, st)} />
+                  <p className="muted small">Наведи камеру телефона на код: откроется этот экзамен с твоим прогрессом.</p>
+                </div>
+              )}
+              {noticeAt('link')}
+            </>
+          }
+        >
+          <button className="primary" disabled={!any} onClick={copyLink}>
             Скопировать ссылку
           </button>
-          <button disabled={!hasProgress(st)} aria-expanded={showQr} onClick={() => setShowQr(!showQr)}>
-            {showQr ? 'Скрыть QR-код' : 'Показать QR-код'}
+          <button disabled={!any} aria-expanded={showQr} onClick={() => setShowQr(!showQr)}>
+            {showQr ? 'Скрыть QR-код' : 'QR-код'}
           </button>
-          <button onClick={download}>Скачать прогресс</button>
+        </SetRow>
+        <SetRow label="Файл" hint="Копия на всякий случай: загрузи её в другом браузере или после сброса." below={noticeAt('file')}>
+          <button disabled={!any} onClick={download}>
+            Скачать
+          </button>
           <label className="btn">
-            Загрузить файл
-            <input type="file" accept="application/json" hidden onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
+            Загрузить
+            <input
+              type="file"
+              accept="application/json,.json"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = ''; // тот же файл можно выбрать ещё раз
+                if (f) upload(f);
+              }}
+            />
           </label>
-          <button
-            className="danger"
-            onClick={() => {
-              if (confirm(`Сбросить весь прогресс по разделу «${exam.short}»?`)) {
-                store.reset();
-                setMsg('Прогресс сброшен.');
-              }
-            }}
-          >
-            Сбросить
-          </button>
-        </div>
-        {showQr && hasProgress(st) && (
-          <>
-            <QrCode text={shareUrl(exam.id, st)} />
-            <p className="muted small">Наведи камеру телефона на код: откроется этот экзамен с твоим прогрессом.</p>
-          </>
-        )}
-        {link && <input className="search" readOnly value={link} aria-label="Ссылка на прогресс" onFocus={(e) => e.target.select()} />}
-        {msg && <p className="small">{msg}</p>}
+        </SetRow>
+        <SetRow
+          label="Сброс"
+          hint="Сотрёт отметки и пробные варианты этого экзамена. Уровень и тема останутся."
+          below={
+            <>
+              {confirmReset && (
+                <div className="settings-confirm">
+                  <p className="small">Стереть {marks(st)}? Это нельзя отменить — если сомневаешься, сначала скачай файл.</p>
+                  <div className="row">
+                    <button
+                      className="danger-solid"
+                      onClick={() => {
+                        store.reset();
+                        setConfirmReset(false);
+                        setShowQr(false);
+                        setLink('');
+                        say('reset', 'Прогресс сброшен.');
+                      }}
+                    >
+                      Стереть прогресс
+                    </button>
+                    <button onClick={() => setConfirmReset(false)}>Отмена</button>
+                  </div>
+                </div>
+              )}
+              {noticeAt('reset')}
+            </>
+          }
+        >
+          {!confirmReset && (
+            <button className="danger" disabled={!any} onClick={() => (setNotice(null), setConfirmReset(true))}>
+              Сбросить…
+            </button>
+          )}
+        </SetRow>
       </section>
+    </div>
+  );
+}
+
+/** Строка настроек: слева подпись и одна строка пояснения, справа управление; ответ на действие — под строкой. */
+function SetRow({ label, hint, children, below }: { label: string; hint: ReactNode; children: ReactNode; below?: ReactNode }) {
+  return (
+    <div className="set-row">
+      <div className="set-main">
+        <div className="set-label">
+          <div className="set-title">{label}</div>
+          <div className="set-hint">{hint}</div>
+        </div>
+        <div className="set-control">{children}</div>
+      </div>
+      {below}
     </div>
   );
 }

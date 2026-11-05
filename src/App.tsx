@@ -4,7 +4,7 @@ import type { Feature } from './content/schema';
 import { trackPage } from './analytics';
 import { catalogOf, examById } from './engine/catalog';
 import { ExamProvider, useCat, usePath } from './exam';
-import { ExamIcon } from './ui/ExamIcon';
+import { ExamIcon, GlyphTile } from './ui/ExamIcon';
 import { ExamStars, LevelSwitch } from './ui/LevelSwitch';
 import { ThemeToggle } from './ui/ThemeToggle';
 import { HubPage } from './pages/HubPage';
@@ -80,12 +80,19 @@ function HubLayout() {
     <>
       <header className="top">
         <div className="top-inner">
-          <NavLink to="/" className="brand">
-            <span className="exam-icon exam-icon-red exam-icon-sm" aria-hidden="true">
-              ∑
-            </span>
-            {SITE_TITLE}
-          </NavLink>
+          {/* Домик стоит и здесь, на том же месте, что в шапке экзамена: при переходе в экзамен значок и название не сдвигаются. */}
+          <div className="brand-row">
+            <NavLink to="/" className="brand-home" title="Все экзамены" aria-label="Все экзамены">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+                <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              </svg>
+            </NavLink>
+            <NavLink to="/" className="brand">
+              <GlyphTile symbol="∑" color="red" small />
+              {SITE_TITLE}
+            </NavLink>
+          </div>
           <ThemeToggle />
         </div>
       </header>
@@ -106,6 +113,7 @@ const NAV: [string, string, Feature | null][] = [
   ['/tasks', 'Задачи', 'tasks'],
   ['/mock', '', 'mock'],
   ['/how', 'Как устроено', null],
+  // на компьютере настройки — шестерёнка в шапке, в меню телефона — пункт
   ['/settings', 'Настройки', null],
 ];
 
@@ -169,8 +177,16 @@ function ExamShell() {
               {exam.short} <ExamStars exam={exam} />
             </NavLink>
           </div>
-          {exam.levels && <LevelSwitch />}
-          <ThemeToggle />
+          <div className="top-tools">
+            {exam.levels && <LevelSwitch />}
+            <NavLink to={p('/settings')} className={({ isActive }) => `icon-btn top-settings ${isActive ? 'icon-btn-on' : ''}`} aria-label="Настройки" title="Настройки">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </NavLink>
+            <ThemeToggle />
+          </div>
           <button className="nav-toggle" aria-label="Разделы" aria-expanded={menuOpen} aria-controls="exam-nav" onClick={() => setMenuOpen(!menuOpen)}>
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true">
               <path d={menuOpen ? 'M6 6l12 12M18 6 6 18' : 'M4 7h16M4 12h16M4 17h16'} />
@@ -178,8 +194,22 @@ function ExamShell() {
           </button>
         </div>
         <nav id="exam-nav" className={`nav ${menuOpen ? 'nav-open' : ''}`}>
+          {/* На узком экране уровень — первым пунктом меню: в шапке он занимал бы целую строку на каждой странице. */}
+          {exam.levels && (
+            <div className="nav-level">
+              <LevelSwitch />
+            </div>
+          )}
           {NAV.filter(([, , f]) => has(f)).map(([to, label]) => (
-            <NavLink key={to} to={p(to)} end={to === '/'} onClick={() => setMenuOpen(false)} className={({ isActive }) => `${isActive ? 'active' : ''} ${to === '/how' ? 'nav-info' : ''}`}>
+            <NavLink
+              key={to}
+              to={p(to)}
+              end={to === '/'}
+              onClick={() => setMenuOpen(false)}
+              // «Главная» горит и по адресу со слэшем на конце (/<id>/): так открываются ссылки на экзамен с GitHub Pages;
+              // «Справочник» — и на страницах тем (/topic/<id>)
+              className={({ isActive }) => `${isActive || (to === '/' && pathname.replace(/\/$/, '') === p('/')) || (to === '/topics' && pathname.startsWith(p('/topic/'))) ? 'active' : ''} ${to === '/how' ? 'nav-info' : ''} ${to === '/settings' ? 'nav-mobile' : ''}`}
+            >
               {to === '/mock' ? exam.mock.title : label}
             </NavLink>
           ))}

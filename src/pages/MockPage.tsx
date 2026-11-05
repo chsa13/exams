@@ -10,6 +10,7 @@ import { FacetBody } from '../ui/FacetView';
 import { ScaleMark, Star, StatusDot } from '../ui/LevelSwitch';
 import { Md } from '../ui/Md';
 import { fmt } from './HomePage';
+import { count } from '../plural';
 
 type Stage = 'intro' | 'prep' | 'answer' | 'result';
 
@@ -155,7 +156,7 @@ export function MockPage() {
   if (stage === 'intro' && spec.kind === 'test') {
     const slotPoints = spec.slots.every((s) => s.points !== undefined);
     return (
-      <div className="page">
+      <div className="page page-narrow">
         <h1>{spec.title}</h1>
         <p>
           Контрольная собирается случайно из банка задач: по одной задаче на каждую позицию. {exam.format}.
@@ -198,7 +199,7 @@ export function MockPage() {
 
   if (stage === 'intro') {
     return (
-      <div className="page">
+      <div className="page page-narrow">
         <h1>{spec.title}</h1>
         <p>
           {spec.kind === 'ticket' && spec.layout ? 'Билет собирается случайно из вопросов списка.' : 'Билет собирается случайно по структуре демо-версии.'}
@@ -248,16 +249,29 @@ export function MockPage() {
   if (stage === 'prep') {
     const left = started + PREP_MIN * 60_000 - now;
     return (
-      <div className="page">
-        <div className={`timer ${left <= 0 ? 'timer-over' : left < 5 * 60_000 ? 'timer-warn' : ''}`}>
-          {isTest ? 'Контрольная' : 'Подготовка'}: {left <= 0 ? 'время вышло' : clock(left)}
-        </div>
-        <TicketList qs={qs} />
-        <div className="row">
+      <div className="page page-side side-right">
+        <aside className="side mock-side" aria-label="Время и вопросы">
+          <MockClock label={isTest ? 'Контрольная' : 'Подготовка'} left={left} warn />
+          <p className="small muted">
+            {count(qs.length, isTest ? 'задача' : 'вопрос', isTest ? 'задачи' : 'вопроса', isTest ? 'задач' : 'вопросов')}, {fmt(totals(qs, {}, rules).redMax)} б.
+          </p>
+          <QuestionMap qs={qs} />
           <button className="primary" onClick={toAnswer}>
             {isTest ? 'Сдать и проверить →' : 'Перейти к ответу →'}
           </button>
           <button onClick={() => confirm('Прервать? Результат не сохранится.') && setStage('intro')}>Прервать</button>
+        </aside>
+        <div className="side-main">
+          <div className={`timer mock-bar ${left <= 0 ? 'timer-over' : left < 5 * 60_000 ? 'timer-warn' : ''}`}>
+            {isTest ? 'Контрольная' : 'Подготовка'}: {left <= 0 ? 'время вышло' : clock(left)}
+          </div>
+          <TicketList qs={qs} />
+          <div className="row mock-bar">
+            <button className="primary" onClick={toAnswer}>
+              {isTest ? 'Сдать и проверить →' : 'Перейти к ответу →'}
+            </button>
+            <button onClick={() => confirm('Прервать? Результат не сохранится.') && setStage('intro')}>Прервать</button>
+          </div>
         </div>
       </div>
     );
@@ -267,8 +281,34 @@ export function MockPage() {
     const left = ANSWER_MIN === null ? 0 : answerStarted + ANSWER_MIN * 60_000 - now;
     const t = totals(qs, scores, rules);
     return (
-      <div className="page">
-        <div className={`timer ${left <= 0 && ANSWER_MIN !== null ? 'timer-over' : ''}`}>
+      <div className="page page-side side-right">
+        <aside className="side mock-side" aria-label="Время и баллы">
+          {ANSWER_MIN === null ? <div className="mock-clock mock-clock-check">Проверка</div> : <MockClock label="Ответ" left={left} />}
+          <div className="mock-score">
+            <span className="mock-score-num">
+              {fmt(t.red)} / {fmt(t.redMax)}
+            </span>
+            <span className="small muted">{exam.levels ? <><Star scale="red" /> основной уровень</> : 'баллов'}</span>
+            {mode === 'all' && exam.levels && (
+              <>
+                <span className="mock-score-num">
+                  {fmt(t.black)} / {fmt(t.blackMax)}
+                </span>
+                <span className="small muted"><Star scale="black" /> продвинутый уровень</span>
+              </>
+            )}
+          </div>
+          <p className="small muted">
+            Оценено: {qs.filter((q) => q.parts.every((_, i) => scores[`${q.n}:${i}`] !== undefined)).length} из {qs.length}
+          </p>
+          <QuestionMap qs={qs} scores={scores} />
+          <GateStatus qs={qs} scores={scores} rules={rules} />
+          <button className="primary" onClick={finish}>
+            Завершить и сохранить
+          </button>
+        </aside>
+        <div className="side-main">
+        <div className={`timer mock-bar ${left <= 0 && ANSWER_MIN !== null ? 'timer-over' : ''}`}>
           <span>{ANSWER_MIN === null ? 'Проверка' : `Ответ: ${left <= 0 ? 'время вышло' : clock(left)}`}</span>
           <span className="timer-score">
             <span>
@@ -287,7 +327,9 @@ export function MockPage() {
             ? 'Открывай решение и отмечай, сколько баллов поставил бы себе проверяющий. Ответ без обоснования — не больше половины.'
             : 'Открывай эталон и отмечай, сколько баллов поставил бы себе экзаменатор.'}
         </p>
-        <GateStatus qs={qs} scores={scores} rules={rules} />
+        <div className="mock-bar">
+          <GateStatus qs={qs} scores={scores} rules={rules} />
+        </div>
         {SECTIONS.map((sec) => {
           const list = qs.filter((q) => q.section === sec);
           if (!list.length) return null;
@@ -308,12 +350,13 @@ export function MockPage() {
         <button className="primary big-btn" onClick={finish}>
           Завершить и сохранить
         </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="page">
+    <div className="page page-narrow">
       <h1>Результат</h1>
       <ResultSummary qs={qs} scores={scores} rules={rules} mode={mode} />
       <div className="row">
@@ -370,7 +413,7 @@ function AttemptPage({ m, rules }: { m: MockResult; rules: Scoring }) {
   const qs = unpack(cat, m.qs ?? []).filter((q) => q.facet || q.task);
   const scores = m.scores ?? {};
   return (
-    <div className="page">
+    <div className="page page-narrow">
       <p className="small">
         <Link to={path('/mock')}>← {cat.exam.mock.title}</Link>
       </p>
@@ -532,7 +575,7 @@ function TicketList({ qs }: { qs: TicketQuestion[] }) {
           <section key={sec}>
             <h2>{sec}</h2>
             {list.map((q) => (
-              <div key={q.n} className="tq">
+              <div key={q.n} className="tq" id={`q-${q.n}`}>
                 <div className="tq-head">
                   <ScaleMark scales={q.scales} />
                   <span className="tq-n">{q.task && cat.exam.mock.kind === 'test' ? 'Задача' : 'Вопрос'} {q.n}</span>
@@ -567,7 +610,7 @@ function AnswerQuestion({
   const [open, setOpen] = useState(false);
   const cat = useCat();
   return (
-    <div className="tq">
+    <div className="tq" id={`q-${q.n}`}>
       <div className="tq-head">
         <ScaleMark scales={q.scales} />
         <span className="tq-n">{q.task && cat.exam.mock.kind === 'test' ? 'Задача' : 'Вопрос'} {q.n}</span>
@@ -608,7 +651,8 @@ function MockHistory() {
   const st = useProgress();
   const path = usePath();
   if (!st.mocks.length) return null;
-  const levels = !!exam.levels;
+  // Столбцы уровня — только если в истории есть попытки на продвинутом: иначе там одни прочерки.
+  const levels = !!exam.levels && st.mocks.some((m) => m.mode === 'all');
   // Разбор есть у попыток, сохранённых вместе с вопросами; у старых и пришедших по ссылке — только баллы.
   const anyReview = st.mocks.some((m) => m.qs?.length);
   return (
@@ -649,3 +693,43 @@ function MockHistory() {
 }
 
 const when = (d: number) => new Date(d).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+/** Таймер в боковой панели пробного варианта: крупное время; меньше 5 минут — жёлтый (если `warn`), время вышло — красный. */
+function MockClock({ label, left, warn = false }: { label: string; left: number; warn?: boolean }) {
+  const cls = left <= 0 ? 'timer-over' : warn && left < 5 * 60_000 ? 'timer-warn' : '';
+  return (
+    <div className={`mock-clock ${cls}`} role="timer">
+      <span className="mock-clock-label">{label}</span>
+      <span className="mock-clock-time">{left <= 0 ? 'время вышло' : clock(left)}</span>
+    </div>
+  );
+}
+
+/**
+ * Номера вопросов в боковой панели: нажатие прокручивает к вопросу. На этапе ответа номер окрашен по баллам
+ * (как статусы: полный — зелёный, часть — жёлтый, ноль — красный), неоценённый — пустой.
+ */
+function QuestionMap({ qs, scores }: { qs: TicketQuestion[]; scores?: Record<string, number> }) {
+  const cat = useCat();
+  const state = (q: TicketQuestion): string => {
+    if (!scores || !q.parts.every((_, i) => scores[`${q.n}:${i}`] !== undefined)) return '';
+    const got = q.parts.reduce((a, _, i) => a + (scores[`${q.n}:${i}`] ?? 0), 0);
+    const max = q.parts.reduce((a, p) => a + p.max, 0);
+    return `qmap-${scoreStatus(got, max)}`;
+  };
+  return (
+    <div className="qmap" role="list">
+      {qs.map((q) => (
+        <button
+          key={q.n}
+          role="listitem"
+          className={state(q)}
+          title={`${q.task && cat.exam.mock.kind === 'test' ? 'Задача' : 'Вопрос'} ${q.n}`}
+          onClick={() => document.getElementById(`q-${q.n}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' })}
+        >
+          {q.n}
+        </button>
+      ))}
+    </div>
+  );
+}

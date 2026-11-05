@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { exams } from '../content';
+import { GLYPHS } from '../src/ui/glyphs';
 
 // Единый стиль всех экзаменов. Правила словами — в CLAUDE.md, раздел «Тексты экзамена».
 // Меняешь правило — меняй его здесь и в CLAUDE.md и сразу приводи к нему ВСЕ экзамены, а не только новый.
@@ -195,5 +196,20 @@ describe('styles.css follows the design rules', () => {
         expect(contrast(token(block, fill), token(block.includes(`--${ink}:`) ? block : light, ink)), `${fill} / ${ink}`).toBeGreaterThanOrEqual(4.5);
       }
     }
+  });
+});
+
+describe('exam icons', () => {
+  it('every exam icon is drawn in src/ui/glyphs.ts and is not repeated', () => {
+    for (const e of exams) expect(Object.keys(GLYPHS), `${e.id}: нарисуй символ ${e.icon} в glyphs.ts`).toContain(e.icon);
+    const icons = exams.map((e) => e.icon);
+    expect(new Set(icons).size).toBe(icons.length);
+    expect(icons).not.toContain('∑'); // ∑ — значок самого сайта
+  });
+
+  it('the site icon in the tab is the drawn ∑, not a font emoji', () => {
+    const html = readFileSync('index.html', 'utf8');
+    expect(html).toMatch(/<link rel="icon" href="\/favicon\.svg"/);
+    expect(readFileSync('public/favicon.svg', 'utf8')).toContain(GLYPHS['∑']);
   });
 });

@@ -20,7 +20,7 @@ export function ProofsPage() {
   const proofs = cat.visibleFacets(st.mode).filter((f) => f.kind === 'proof');
   const nextUp = orderByPriority(proofs, (f) => f.key, store.get())[0];
   return (
-    <div className="page">
+    <div className="page page-narrow">
       <h1>Доказательства</h1>
       <p className="muted">
         {proofRule(cat.exam.mock)}{' '}
@@ -79,7 +79,7 @@ export function ProofPage() {
   const nextProof = all[(i + 1) % all.length];
 
   return (
-    <div className="page">
+    <div className="page page-narrow">
       <div className="crumbs">
         <Link to={path('/proofs')}>Доказательства</Link> / {topic.title}
       </div>

@@ -36,7 +36,7 @@ export function QuantPage() {
 
 
   return (
-    <div className="page">
+    <div className="page page-narrow">
       <h1>Тренажёр кванторов</h1>
       <Md
         className="muted"

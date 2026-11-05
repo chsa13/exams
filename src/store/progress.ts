@@ -60,6 +60,21 @@ function normalize(parsed: State): State {
   };
 }
 
+/** Читает файл прогресса, ничего не меняя. Испорченный файл или файл другого экзамена — ошибка с понятным текстом. */
+export function parseProgress(json: string, ownKey?: (key: string) => boolean): State {
+  let parsed: State | null;
+  try {
+    parsed = JSON.parse(json) as State | null;
+  } catch {
+    throw new Error('Неверный файл прогресса');
+  }
+  const badMocks = parsed?.mocks !== undefined && !Array.isArray(parsed?.mocks);
+  if (parsed?.version !== 1 || !isPlainObject(parsed.items) || badMocks) throw new Error('Неверный файл прогресса');
+  const keys = Object.keys(parsed.items);
+  if (ownKey && keys.length && !keys.some(ownKey)) throw new Error('Это файл другого экзамена, прогресс не изменён');
+  return normalize(parsed);
+}
+
 export class ProgressStore {
   private state: State;
   private listeners = new Set<() => void>();
@@ -136,12 +151,7 @@ export class ProgressStore {
 
   /** ownKey проверяет, что отметка относится к этому экзамену: файл другого экзамена не должен затереть прогресс. */
   importJson(json: string, ownKey?: (key: string) => boolean) {
-    const parsed = JSON.parse(json) as State | null;
-    const badMocks = parsed?.mocks !== undefined && !Array.isArray(parsed?.mocks);
-    if (parsed?.version !== 1 || !isPlainObject(parsed.items) || badMocks) throw new Error('Неверный файл прогресса');
-    const keys = Object.keys(parsed.items);
-    if (ownKey && keys.length && !keys.some(ownKey)) throw new Error('Это файл другого экзамена, прогресс не изменён');
-    this.set(normalize(parsed));
+    this.set(parseProgress(json, ownKey));
   }
 
   /** Прогресс из ссылки вместо своего. */
