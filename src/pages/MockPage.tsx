@@ -36,8 +36,6 @@ function restore(cat: Catalog): { s: Saved; qs: TicketQuestion[] } | null {
     const raw = localStorage.getItem(storageKey(cat.exam.id, 'mock'));
     if (!raw) return null;
     const s = JSON.parse(raw) as Saved;
-    // Восстанавливаем только идущую попытку. Результат уже в истории (с разбором), а вернуться сюда — значит к вступлению.
-    if (s.stage !== 'prep' && s.stage !== 'answer') return null;
     const qs = unpack(cat, s.qs);
     if (qs.some((q) => !q.facet && !q.task)) return null;
     return { s, qs };
@@ -109,14 +107,15 @@ export function MockPage() {
   }, [stage]);
 
   // Нажатие на вкладку пробного варианта с экрана результата (адрес тот же, меняется только location.key) —
-  // назад к вступлению с историей. Идущую попытку вкладка не сбрасывает.
+  // назад к вступлению с историей. Идущую попытку вкладка не сбрасывает. При открытии страницы результат остаётся.
   const { key: locationKey } = useLocation();
+  const firstKey = useRef(locationKey);
   useEffect(() => {
-    setStage((s) => (s === 'result' ? 'intro' : s));
+    if (locationKey !== firstKey.current) setStage((s) => (s === 'result' ? 'intro' : s));
   }, [locationKey]);
 
   useEffect(() => {
-    if (stage === 'intro' || stage === 'result') {
+    if (stage === 'intro') {
       persist(exam.id, null);
       return;
     }
