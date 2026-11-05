@@ -13,6 +13,7 @@ import { LevelMark, STATUS_LABEL, StatusDot } from '../ui/LevelSwitch';
 import { count } from '../plural';
 import { revealTop } from '../ui/scroll';
 import { MultiSeg } from '../ui/MultiSeg';
+import { TopicPicker } from '../ui/TopicPicker';
 
 const ASK: Record<Kind, string> = {
   definition: 'Дай определение',
@@ -39,7 +40,11 @@ export function CardsPage() {
   const examId = cat.exam.id;
   const store = useStore();
   const st = useProgress();
-  const topic = sp.get('topic') ?? '';
+  // Темы через запятую, в порядке справочника; пусто — все темы. Старые ссылки `topic=<id>` открывают одну тему.
+  const visibleTopics = cat.visibleTopics(st.mode);
+  const topicParam = sp.get('topic')?.split(',') ?? [];
+  const topics = visibleTopics.filter((t) => topicParam.includes(t.id)).map((t) => t.id);
+  const topic = topics.join(',');
   const kindParam = sp.get('kind');
   const kinds: Kind[] = kindParam ? (kindParam.split(',') as Kind[]) : ['definition', 'statement', 'proof'];
   // `last=1` — старая ссылка на слабые карточки: «не знаю» и «частично».
@@ -63,13 +68,13 @@ export function CardsPage() {
   // Сохранённые сессии помнят прежний ключ с true/false на месте статусов: для этих двух наборов он не меняется.
   const statusKey = allStatuses ? 'false' : onlyWeak ? 'true' : statuses.join(',');
   const filterKey = `${st.mode}|${topic}|${kinds.join(',')}|${statusKey}`;
-  /** Карточки под вид и тему, без фильтра по статусу. */
-  const basePool = (s: typeof st): Facet[] => {
+  /** Карточки под вид и темы, без фильтра по статусу. */
+  const basePool = (s: typeof st, inTopics: readonly string[] = topics): Facet[] => {
     const visible = cat.visibleFacets(s.mode);
     // Если доказательства в наборе, теорема спрашивается одной карточкой «сформулируй и докажи».
     const withProof = new Set(kinds.includes('proof') ? visible.filter((f) => f.kind === 'proof').map((f) => f.unit.id) : []);
     return visible.filter(
-      (f) => kinds.includes(f.kind) && (!topic || f.topic.id === topic) && !(f.kind === 'statement' && withProof.has(f.unit.id)),
+      (f) => kinds.includes(f.kind) && (!inTopics.length || inTopics.includes(f.topic.id)) && !(f.kind === 'statement' && withProof.has(f.unit.id)),
     );
   };
   /** Статусы карточки; у теоремы «формулировка + доказательство» — обеих частей, подходит любая. */
@@ -85,6 +90,9 @@ export function CardsPage() {
   };
   const base = basePool(st);
   const statusCount = (x: Status) => base.filter((f) => cardStatuses(st, f).includes(x)).length;
+  /** Сколько карточек в теме под вид и статусы — подпись в списке тем. */
+  const topicCount = (id: string) =>
+    basePool(st, [id]).filter((f) => allStatuses || cardStatuses(st, f).some((x) => statuses.includes(x))).length;
   const fresh = (): CardSession => ({ fk: filterKey, keys: buildQueue(), pos: 0, step: 0, updated: Date.now() });
   const restoreOrFresh = (): CardSession => loadSession(examId, filterKey) ?? fresh();
 
@@ -107,6 +115,7 @@ export function CardsPage() {
 
   const card: Facet | undefined = queue[pos];
   const next = () => setSession((s) => ({ ...s, pos: s.pos + 1, step: 0 }));
+  const prev = () => setSession((s) => (s.pos > 0 ? { ...s, pos: s.pos - 1, step: 0 } : s));
 
   // Следующая карточка открывается с начала, а не с того места, где закончился длинный ответ.
   const cardRef = useRef<HTMLDivElement>(null);
@@ -125,7 +134,7 @@ export function CardsPage() {
     const h = (e: KeyboardEvent) => {
       if (e.key === 'Tab') viaTab.current = true;
       if (e.key === 'Escape' && !e.defaultPrevented && !(e.target instanceof HTMLSelectElement)) {
-        setSession((s) => (s.pos > 0 ? { ...s, pos: s.pos - 1, step: 0 } : s));
+        prev();
         return;
       }
     };
@@ -163,14 +172,7 @@ export function CardsPage() {
         <MultiSeg items={kindItems} value={kinds} onChange={(list) => update({ kind: list.join(',') })} label="Что спрашивать">
           {(k) => KIND_LABEL[k]}
         </MultiSeg>
-        <select value={topic} onChange={(e) => update({ topic: e.target.value })}>
-          <option value="">Все темы</option>
-          {cat.visibleTopics(st.mode).map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.title}
-            </option>
-          ))}
-        </select>
+        <TopicPicker topics={visibleTopics} value={topics} onChange={(list) => update({ topic: list.join(',') })} counts={topicCount} />
       </div>
       <div className="filters">
         <MultiSeg
@@ -266,9 +268,16 @@ export function CardsPage() {
             <Link className="small" to={path(`/topic/${card.topic.id}?u=${card.unit.id}`)}>
               Открыть в справочнике
             </Link>
-            <button className="link small" onClick={next}>
-              Пропустить →
-            </button>
+            <span className="card-nav">
+              {pos > 0 && (
+                <button className="link small" onClick={prev} title="Прошлая карточка (Esc)">
+                  ← Назад
+                </button>
+              )}
+              <button className="link small" onClick={next}>
+                Пропустить →
+              </button>
+            </span>
           </div>
         </div>
       )}

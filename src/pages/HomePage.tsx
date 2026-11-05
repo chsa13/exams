@@ -1,12 +1,15 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import type { Kind } from '../content/schema';
 import { readiness, score, taskKey, type Readiness } from '../engine/catalog';
 import { useCat, usePath } from '../exam';
-import { useProgress } from '../store/progress';
+import { useProgress, type Status } from '../store/progress';
 import { Star, StatusDot } from '../ui/LevelSwitch';
 import { ProgressBar } from '../ui/ProgressBar';
+import { Md } from '../ui/Md';
 import { Ring } from '../ui/Ring';
+import { Sparkline } from '../ui/Sparkline';
 import { Countdown } from './HubPage';
 import { count } from '../plural';
 
@@ -24,7 +27,10 @@ export function HomePage() {
   const fs = cat.visibleFacets(st.mode);
   const all = readiness(fs.map((f) => f.key), st);
   const ts = readiness(cat.visibleTasks(st.mode).map(taskKey), st);
-  const lastMock = st.mocks.filter((m) => m.mode === st.mode).at(-1);
+  // Попытки на текущем уровне; под баллом — как они менялись (последние 12).
+  const mocks = st.mocks.filter((m) => m.mode === st.mode && m.redMax > 0);
+  const lastMock = mocks.at(-1);
+  const trend = mocks.slice(-12);
   const kinds = KINDS.filter(([k]) => fs.some((f) => f.kind === k));
   const isTest = exam.mock.kind === 'test';
   const hasTasks = exam.features.includes('tasks');
@@ -66,6 +72,10 @@ export function HomePage() {
                   </>
                 )}
               </div>
+              <Sparkline
+                values={trend.map((m) => m.red / m.redMax)}
+                label={`Баллы за ${count(trend.length, 'последнюю попытку', 'последние попытки', 'последних попыток')}: ${trend.map((m) => fmt(m.red)).join('; ')}`}
+              />
             </div>
           </div>
         </div>
@@ -192,17 +202,81 @@ function Action({ title, to, primary = false, children }: { title: string; to: s
 
 function Cell({ keys, to }: { keys: string[]; to: string }) {
   const st = useProgress();
+  const [tip, setTip] = useState<DOMRect | null>(null);
   if (!keys.length) return <div className="cell cell-empty" />;
   const r = readiness(keys, st);
+  const show = (e: { currentTarget: HTMLElement }) => setTip(e.currentTarget.getBoundingClientRect());
+  const hide = () => setTip(null);
   return (
-    <Link
-      to={to}
-      className={`cell ${r.known === r.total ? 'cell-full' : score(r) === 0 ? 'cell-zero' : ''}`}
-      style={{ ['--p' as string]: score(r) }}
-      title={`знаю ${r.known}, частично ${r.shaky}, не знаю ${r.weak}, новых ${r.fresh}`}
-    >
-      {r.known}/{r.total}
-    </Link>
+    <>
+      <Link
+        to={to}
+        className={`cell ${r.known === r.total ? 'cell-full' : score(r) === 0 ? 'cell-zero' : ''}`}
+        style={{ ['--p' as string]: score(r) }}
+        aria-label={`знаю ${r.known} из ${r.total}, частично ${r.shaky}, не знаю ${r.weak}, новых ${r.fresh}`}
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        onFocus={show}
+        onBlur={hide}
+      >
+        {r.known}/{r.total}
+      </Link>
+      {tip && <CellTip keys={keys} at={tip} onClose={hide} />}
+    </>
+  );
+}
+
+/** Порядок в подсказке — как в очереди карточек: сначала «не знаю», потом «частично» и новые. */
+const TIP_ORDER: Status[] = ['weak', 'shaky', 'new'];
+const TIP_MAX = 10;
+const TIP_W = 360;
+
+/**
+ * Подсказка к ячейке карты: что в ней ещё не на «знаю». Висит над страницей (`position: fixed`, в body),
+ * иначе её обрезала бы таблица со скруглёнными углами. При прокрутке закрывается.
+ */
+function CellTip({ keys, at, onClose }: { keys: string[]; at: DOMRect; onClose: () => void }) {
+  const cat = useCat();
+  const st = useProgress();
+  useEffect(() => {
+    window.addEventListener('scroll', onClose, { passive: true });
+    return () => window.removeEventListener('scroll', onClose);
+  }, [onClose]);
+  const status = (k: string): Status => st.items[k]?.status ?? 'new';
+  const left = keys.filter((k) => status(k) !== 'known').sort((a, b) => TIP_ORDER.indexOf(status(a)) - TIP_ORDER.indexOf(status(b)));
+  const title = (k: string) => {
+    if (k.startsWith('task:')) {
+      const task = cat.tasks.find((t) => `task:${t.id}` === k);
+      return task ? <Md text={task.prompt.split('\n')[0]} inline /> : k;
+    }
+    return cat.facetByKey.get(k)?.unit.title ?? k;
+  };
+  // Под ячейкой, а если внизу мало места — над ней; по горизонтали не выходит за экран.
+  const x = Math.min(Math.max(8, at.left + at.width / 2 - TIP_W / 2), document.documentElement.clientWidth - TIP_W - 16);
+  const below = at.bottom + 8 + 280 < window.innerHeight;
+  const style = below ? { left: x, top: at.bottom + 8 } : { left: x, bottom: window.innerHeight - at.top + 8 };
+  return createPortal(
+    <div className="cell-tip" style={{ ...style, width: TIP_W }} role="tooltip">
+      {left.length === 0 ? (
+        <div className="cell-tip-head">Всё на «знаю»</div>
+      ) : (
+        <>
+          <div className="cell-tip-head">
+            Не выучено: {left.length} из {keys.length}
+          </div>
+          <ul>
+            {left.slice(0, TIP_MAX).map((k) => (
+              <li key={k}>
+                <StatusDot status={status(k)} />
+                <span className="cell-tip-title">{title(k)}</span>
+              </li>
+            ))}
+          </ul>
+          {left.length > TIP_MAX && <div className="cell-tip-more">и ещё {left.length - TIP_MAX}</div>}
+        </>
+      )}
+    </div>,
+    document.body,
   );
 }
 

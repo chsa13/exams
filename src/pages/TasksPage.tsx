@@ -10,6 +10,7 @@ import { ScaleMark, StatusDot } from '../ui/LevelSwitch';
 import { Md } from '../ui/Md';
 import { fmt } from './HomePage';
 import { count } from '../plural';
+import { TopicPicker } from '../ui/TopicPicker';
 
 export function TasksPage() {
   const cat = useCat();
@@ -17,7 +18,11 @@ export function TasksPage() {
   const st = useProgress();
   const [sp, setSp] = useSearchParams();
   const type = (sp.get('type') ?? '') as TaskType | '';
-  const topic = sp.get('topic') ?? '';
+  // Темы через запятую, в порядке справочника; пусто — все темы. Старые ссылки `topic=<id>` открывают одну тему.
+  const visibleTopics = cat.visibleTopics(st.mode);
+  const topicParam = sp.get('topic')?.split(',') ?? [];
+  const topics = visibleTopics.filter((t) => topicParam.includes(t.id)).map((t) => t.id);
+  const topic = topics.join(',');
   const skill = sp.get('skill') ?? '';
   const set = (k: string, v: string) => {
     const n = new URLSearchParams(sp);
@@ -26,13 +31,16 @@ export function TasksPage() {
     setSp(n, { replace: true });
   };
 
+  /** Задачи под тип и навык, без фильтра по теме. */
+  const byTypeSkill = (mode: typeof st.mode) => cat.visibleTasks(mode).filter((t) => (!type || t.type === type) && (!skill || t.skill === skill));
   const list = useMemo(() => {
     const s = store.get();
-    const pool = cat.visibleTasks(s.mode).filter((t) => (!type || t.type === type) && (!topic || t.topic === topic) && (!skill || t.skill === skill));
+    const pool = byTypeSkill(s.mode).filter((t) => !topics.length || topics.includes(t.topic));
     return orderByPriority(pool, taskKey, s);
     // порядок фиксируем на фильтр, чтобы список не прыгал после оценки
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type, topic, skill, st.mode, cat]);
+  const topicCount = (id: string) => byTypeSkill(st.mode).filter((t) => t.topic === id).length;
   const types = (Object.keys(TASK_TYPE_LABEL) as TaskType[]).filter((x) => cat.tasks.some((t) => t.type === x));
 
   return (
@@ -48,14 +56,7 @@ export function TasksPage() {
             </option>
           ))}
         </select>
-        <select value={topic} onChange={(e) => set('topic', e.target.value)}>
-          <option value="">Все темы</option>
-          {cat.visibleTopics(st.mode).map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.title}
-            </option>
-          ))}
-        </select>
+        <TopicPicker topics={visibleTopics} value={topics} onChange={(list) => set('topic', list.join(','))} counts={topicCount} />
         {cat.exam.skills && (
           <select value={skill} onChange={(e) => set('skill', e.target.value)}>
             <option value="">Все навыки</option>

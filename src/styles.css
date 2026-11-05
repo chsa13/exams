@@ -808,6 +808,27 @@ select {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+/* Микрографик пробных вариантов под баллом: линия акцентом, последняя попытка — точка. */
+.spark {
+  display: block;
+  margin-top: 4px;
+  overflow: visible;
+}
+.spark-base {
+  stroke: var(--surface-2);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.spark-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.spark-dot {
+  fill: var(--accent);
+}
 .meter-rest {
   display: flex;
   flex-wrap: wrap;
@@ -978,6 +999,50 @@ select {
 }
 .cell-empty {
   background: transparent;
+}
+/* Подсказка к ячейке: что ещё не выучено. Висит над страницей, мышь сквозь неё проходит. */
+.cell-tip {
+  position: fixed;
+  z-index: 50;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgb(28 27 25 / 0.12);
+  font-size: 14px;
+  line-height: 20px;
+  pointer-events: none;
+}
+.cell-tip-head {
+  font-weight: 500;
+}
+.cell-tip ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.cell-tip li {
+  display: flex;
+  align-items: first baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.cell-tip li .dot {
+  flex: none;
+}
+.cell-tip-title {
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+.cell-tip-more {
+  margin-top: 4px;
+  color: var(--muted);
 }
 /* Телефонная версия карты готовности. */
 .ready-list {
@@ -1336,9 +1401,63 @@ select {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
-/* Список тем рядом с переключателем: занимает остаток строки, длинное название обрезается. */
-.seg-multi + select {
+/* Выбор тем (`TopicPicker`) в карточках и задачах одинаковый: занимает остаток строки, длинное название обрезается.
+   Кнопка выглядит как выпадающий список, раскрытый список — те же переключатели `.seg-multi`, столбиком. */
+.picker {
+  position: relative;
   flex: 1 1 240px;
+  min-width: 0;
+}
+.picker-btn {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 36px 9px 12px;
+  font-size: 16px;
+  font-weight: 400;
+  background-image:
+    linear-gradient(45deg, transparent calc(50% - 1px), var(--muted) calc(50% - 1px), var(--muted) calc(50% + 1px), transparent calc(50% + 1px)),
+    linear-gradient(-45deg, transparent calc(50% - 1px), var(--muted) calc(50% - 1px), var(--muted) calc(50% + 1px), transparent calc(50% + 1px));
+  background-size: 7px 7px;
+  background-position:
+    right 18px center,
+    right 12px center;
+  background-repeat: no-repeat;
+}
+.picker-btn:active {
+  transform: none;
+}
+.picker-btn span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.picker-pop {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  width: max(100%, min(440px, calc(100vw - 32px)));
+  max-height: min(480px, 60vh);
+  margin-top: 4px;
+  overflow-y: auto;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  box-shadow: 0 8px 24px rgb(28 27 25 / 0.12);
+}
+.picker-list {
+  display: grid;
+  width: 100%;
+}
+.picker-list button {
+  justify-content: space-between;
+  min-height: 36px;
+  padding: 7px 12px;
+  text-align: left;
+}
+.picker-list button:first-child {
+  margin-bottom: 4px;
+}
+.picker-title {
   min-width: 0;
 }
 /* На телефоне — ровная сетка в два столбца; нечётный последний пункт на всю ширину. */
@@ -1353,6 +1472,19 @@ select {
   }
   .seg-multi button:last-child:nth-child(odd) {
     grid-column: span 2;
+  }
+  /* темы — столбиком: названия длинные */
+  .picker {
+    flex: 1 1 100%;
+  }
+  .seg-multi.picker-list {
+    grid-template-columns: 1fr;
+  }
+  .seg-multi.picker-list button {
+    justify-content: space-between;
+  }
+  .seg-multi.picker-list button:last-child {
+    grid-column: auto;
   }
 }
 .chk {
@@ -1475,6 +1607,11 @@ button.tool:hover {
   margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
+}
+/* «← Назад» и «Пропустить →» — вместе справа; «Назад» появляется со второй карточки. */
+.card-nav {
+  display: inline-flex;
+  gap: 16px;
 }
 .grade {
   display: grid;
@@ -1687,6 +1824,27 @@ p.timer-over {
 .tq-body {
   margin: 8px 0;
 }
+/* Разбор пробного варианта: баллы за вопрос — справа в шапке, точка как статус в прогрессе. */
+.tq-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  font-weight: 500;
+}
+.review {
+  margin-top: 32px;
+}
+.review-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.review-head h2 {
+  margin: 0;
+}
 .score-row {
   display: flex;
   flex-wrap: wrap;
@@ -1725,6 +1883,9 @@ p.timer-over {
   font-size: 14px;
   font-weight: 500;
   color: var(--muted);
+}
+.tbl .tbl-end {
+  text-align: right;
 }
 .prose {
   max-width: 720px;

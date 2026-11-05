@@ -20,6 +20,9 @@ export interface TicketQuestion {
   task?: Task;
 }
 
+/** Вопрос в сохранённом виде: вместо грани и задачи — их ключи (так он хранится в браузере и в истории). */
+export type SavedQuestion = Omit<TicketQuestion, 'facet' | 'task'> & { facetKey?: string; taskId?: string };
+
 export function shuffle<T>(xs: T[]): T[] {
   const a = [...xs];
   for (let i = a.length - 1; i > 0; i--) {

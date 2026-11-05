@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { useCat } from '../exam';
+import type { SavedQuestion } from '../engine/ticket';
 
 // Прогресс хранится в браузере (localStorage), отдельно для каждого экзамена. Сервер не нужен.
 
@@ -19,6 +20,9 @@ export interface MockResult {
   redMax: number;
   black: number;
   blackMax: number;
+  /** вопросы и поставленные баллы — для разбора; у старых результатов и у пришедших по ссылке их нет */
+  qs?: SavedQuestion[];
+  scores?: Record<string, number>;
 }
 
 export interface State {

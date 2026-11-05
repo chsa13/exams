@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { KIND_LABEL, TASK_TYPE_LABEL, type TicketLayout } from '../content/schema';
 import { taskKey, type Catalog } from '../engine/catalog';
-import { gateFailed, generateMock, scoringOf, theoryPassed, totals, type Scoring, type Section, type TicketQuestion } from '../engine/ticket';
+import { gateFailed, generateMock, scoringOf, theoryPassed, totals, type SavedQuestion, type Scoring, type Section, type TicketQuestion } from '../engine/ticket';
 import { trackEvent } from '../analytics';
 import { useCat, usePath } from '../exam';
-import { storageKey, useProgress, useStore, type Mode } from '../store/progress';
+import { storageKey, useProgress, useStore, type MockResult, type Mode, type Status } from '../store/progress';
 import { FacetBody } from '../ui/FacetView';
-import { ScaleMark, Star } from '../ui/LevelSwitch';
+import { ScaleMark, Star, StatusDot } from '../ui/LevelSwitch';
 import { Md } from '../ui/Md';
 import { fmt } from './HomePage';
 
@@ -19,19 +19,23 @@ interface Saved {
   started: number;
   answerStarted: number;
   scores: Record<string, number>;
-  qs: (Omit<TicketQuestion, 'facet' | 'task'> & { facetKey?: string; taskId?: string })[];
+  qs: SavedQuestion[];
 }
+
+const pack = (qs: TicketQuestion[]): SavedQuestion[] => qs.map(({ facet, task, ...rest }) => ({ ...rest, facetKey: facet?.key, taskId: task?.id }));
+const unpack = (cat: Catalog, qs: SavedQuestion[]): TicketQuestion[] =>
+  qs.map((q) => ({
+    ...q,
+    facet: q.facetKey ? cat.facetByKey.get(q.facetKey) : undefined,
+    task: q.taskId ? cat.tasks.find((t) => t.id === q.taskId) : undefined,
+  }));
 
 function restore(cat: Catalog): { s: Saved; qs: TicketQuestion[] } | null {
   try {
     const raw = localStorage.getItem(storageKey(cat.exam.id, 'mock'));
     if (!raw) return null;
     const s = JSON.parse(raw) as Saved;
-    const qs = s.qs.map((q) => ({
-      ...q,
-      facet: q.facetKey ? cat.facetByKey.get(q.facetKey) : undefined,
-      task: q.taskId ? cat.tasks.find((t) => t.id === q.taskId) : undefined,
-    }));
+    const qs = unpack(cat, s.qs);
     if (qs.some((q) => !q.facet && !q.task)) return null;
     return { s, qs };
   } catch {
@@ -87,6 +91,9 @@ export function MockPage() {
   const [answerStarted, setAnswerStarted] = useState(restored?.s.answerStarted ?? 0);
   const [scores, setScores] = useState<Record<string, number>>(restored?.s.scores ?? {});
   const now = useNow(stage === 'prep' || (stage === 'answer' && ANSWER_MIN !== null));
+  // `?attempt=<дата>` — разбор прошлого пробного варианта из истории.
+  const [sp] = useSearchParams();
+  const attempt = st.mocks.find((m) => String(m.date) === sp.get('attempt') && m.qs?.length);
 
   // Этапы билета сменяются без смены адреса: каждый новый этап открываем сверху.
   useEffect(() => {
@@ -104,7 +111,7 @@ export function MockPage() {
       started,
       answerStarted,
       scores,
-      qs: qs.map(({ facet, task, ...rest }) => ({ ...rest, facetKey: facet?.key, taskId: task?.id })),
+      qs: pack(qs),
     });
   }, [exam.id, stage, qs, mode, started, answerStarted, scores]);
 
@@ -124,7 +131,7 @@ export function MockPage() {
 
   const finish = () => {
     const t = totals(qs, scores, rules);
-    store.addMock({ date: Date.now(), mode, ...t });
+    store.addMock({ date: Date.now(), mode, ...t, qs: pack(qs), scores });
     trackEvent('mock-finish', { exam: exam.id, percent: t.redMax ? Math.round((t.red / t.redMax) * 100) : 0 });
     // Переносим результат в прогресс: ≥90% — знаю, ≥40% — частично, иначе не знаю.
     const verdict = (got: number, max: number) => (got >= 0.9 * max ? 'known' : got >= 0.4 * max ? 'shaky' : 'weak');
@@ -142,6 +149,8 @@ export function MockPage() {
     }
     setStage('result');
   };
+
+  if (attempt) return <AttemptPage m={attempt} rules={rules} />;
 
   if (stage === 'intro' && spec.kind === 'test') {
     const slotPoints = spec.slots.every((s) => s.points !== undefined);
@@ -303,11 +312,35 @@ export function MockPage() {
     );
   }
 
-  const t = totals(qs, scores, rules);
-  const lost = qs.filter((q) => q.parts.some((p, i) => (scores[`${q.n}:${i}`] ?? 0) < p.max));
   return (
     <div className="page">
       <h1>Результат</h1>
+      <ResultSummary qs={qs} scores={scores} rules={rules} mode={mode} />
+      <div className="row">
+        <button className="primary" onClick={() => setStage('intro')}>
+          Ещё раз
+        </button>
+        {isTest ? (
+          <Link className="btn" to={path('/tasks')}>
+            К банку задач
+          </Link>
+        ) : (
+          <Link className="btn" to={path('/cards?status=weak,shaky&kind=definition,statement,proof')}>
+            Повторить слабое
+          </Link>
+        )}
+      </div>
+      <MockReview qs={qs} scores={scores} rules={rules} />
+    </div>
+  );
+}
+
+/** Баллы попытки и допуск. */
+function ResultSummary({ qs, scores, rules, mode }: { qs: TicketQuestion[]; scores: Record<string, number>; rules: Scoring; mode: Mode }) {
+  const { exam } = useCat();
+  const t = totals(qs, scores, rules);
+  return (
+    <>
       <div className="hero-stats">
         <div className="stat">
           <div className="stat-num">
@@ -325,37 +358,108 @@ export function MockPage() {
         )}
       </div>
       <GateStatus qs={qs} scores={scores} rules={rules} />
-      {lost.length > 0 ? (
-        <>
-          <h3>Где потерял баллы</h3>
-          <ul>
-            {lost.map((q) => (
-              <li key={q.n}>
-                {q.n}. {q.facet ? q.facet.unit.title : q.label ?? <Md text={q.task!.prompt.split('\n')[0]} inline />}{' '}
-                <span className="muted small">
-                  ({q.parts.map((p, i) => `${fmt(scores[`${q.n}:${i}`] ?? 0)}/${fmt(p.max)}`).join(' + ')})
-                </span>
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : (
-        <p className="muted">Все баллы набраны.</p>
-      )}
-      <div className="row">
-        <button className="primary" onClick={() => setStage('intro')}>
-          Ещё раз
-        </button>
-        {isTest ? (
-          <Link className="btn" to={path('/tasks')}>
-            К банку задач
-          </Link>
-        ) : (
-          <Link className="btn" to={path('/cards?status=weak,shaky&kind=definition,statement,proof')}>
-            Повторить слабое
-          </Link>
-        )}
+    </>
+  );
+}
+
+/** Разбор прошлой попытки из истории: те же баллы и вопросы, что были в конце. */
+function AttemptPage({ m, rules }: { m: MockResult; rules: Scoring }) {
+  const cat = useCat();
+  const path = usePath();
+  // Вопрос, которого больше нет в контенте, пропускаем: показать по нему нечего.
+  const qs = unpack(cat, m.qs ?? []).filter((q) => q.facet || q.task);
+  const scores = m.scores ?? {};
+  return (
+    <div className="page">
+      <p className="small">
+        <Link to={path('/mock')}>← {cat.exam.mock.title}</Link>
+      </p>
+      <h1>Разбор: {when(m.date)}</h1>
+      <ResultSummary qs={qs} scores={scores} rules={rules} mode={m.mode} />
+      <MockReview qs={qs} scores={scores} rules={rules} />
+    </div>
+  );
+}
+
+/** Сколько набрано за вопрос: точка — как статус в прогрессе (≥90% знаю, ≥40% частично). */
+function scoreStatus(got: number, max: number): Status {
+  return got >= 0.9 * max ? 'known' : got >= 0.4 * max ? 'shaky' : 'weak';
+}
+
+/** Все вопросы попытки с поставленными баллами и эталоном; по умолчанию — только где потерял баллы. */
+function MockReview({ qs, scores, rules }: { qs: TicketQuestion[]; scores: Record<string, number>; rules: Scoring }) {
+  const locked = gateFailed(qs, scores, rules);
+  const got = (q: TicketQuestion, i: number) => (locked && q.section === 'Доказательства' ? 0 : (scores[`${q.n}:${i}`] ?? 0));
+  const isLost = (q: TicketQuestion) => q.parts.some((p, i) => got(q, i) < p.max);
+  const lostCount = qs.filter(isLost).length;
+  const [onlyLost, setOnlyLost] = useState(lostCount > 0);
+  const shown = onlyLost ? qs.filter(isLost) : qs;
+  return (
+    <section className="review">
+      <div className="review-head">
+        <h2>Разбор</h2>
+        <div className="seg" role="radiogroup" aria-label="Какие вопросы показать">
+          <button role="radio" aria-checked={onlyLost} className={onlyLost ? 'on' : ''} onClick={() => setOnlyLost(true)}>
+            Где потерял баллы <span className="seg-count">{lostCount}</span>
+          </button>
+          <button role="radio" aria-checked={!onlyLost} className={!onlyLost ? 'on' : ''} onClick={() => setOnlyLost(false)}>
+            Все <span className="seg-count">{qs.length}</span>
+          </button>
+        </div>
       </div>
+      {shown.length === 0 && <p className="muted">Все баллы набраны.</p>}
+      {SECTIONS.map((sec) => {
+        const list = shown.filter((q) => q.section === sec);
+        if (!list.length) return null;
+        return (
+          <section key={sec}>
+            <h3>{sec}</h3>
+            {list.map((q) => (
+              <ReviewQuestion key={q.n} q={q} got={(i) => got(q, i)} locked={locked && sec === 'Доказательства'} />
+            ))}
+          </section>
+        );
+      })}
+    </section>
+  );
+}
+
+function ReviewQuestion({ q, got, locked }: { q: TicketQuestion; got: (i: number) => number; locked: boolean }) {
+  const [open, setOpen] = useState(false);
+  const cat = useCat();
+  const path = usePath();
+  const sum = q.parts.reduce((a, _, i) => a + got(i), 0);
+  const max = q.parts.reduce((a, p) => a + p.max, 0);
+  return (
+    <div className="tq">
+      <div className="tq-head">
+        <ScaleMark scales={q.scales} />
+        <span className="tq-n">{q.task && cat.exam.mock.kind === 'test' ? 'Задача' : 'Вопрос'} {q.n}</span>
+        {q.facet && <span className="tag">{KIND_LABEL[q.facet.kind]}</span>}
+        {q.task && cat.exam.mock.kind === 'test' && <span className="tag">{TASK_TYPE_LABEL[q.task.type]}</span>}
+        <span className="tq-score">
+          <StatusDot status={scoreStatus(sum, max)} /> {fmt(sum)} из {fmt(max)}
+        </span>
+      </div>
+      <div className="tq-body">{q.task ? <Md text={q.task.prompt} /> : <b>{questionTitle(cat, q)}</b>}</div>
+      {q.parts.length > 1 && (
+        <p className="small muted">
+          {q.parts.map((p, i) => `${p.label}: ${fmt(got(i))} из ${fmt(p.max)}`).join('; ')}
+        </p>
+      )}
+      {locked && <p className="small muted">Не засчитано: теория не сдана.</p>}
+      {!open ? (
+        <button onClick={() => setOpen(true)}>{q.task ? 'Показать решение' : 'Показать эталон'}</button>
+      ) : (
+        <>
+          <div className="answer">{q.task ? <Md text={q.task.answer} /> : <FacetBody unit={q.facet!.unit} kind={q.facet!.kind} />}</div>
+          {q.facet && (
+            <Link className="small" to={path(`/topic/${q.facet.topic.id}?u=${q.facet.unit.id}`)}>
+              Открыть в справочнике
+            </Link>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -502,31 +606,11 @@ function AnswerQuestion({
 function MockHistory() {
   const { exam } = useCat();
   const st = useProgress();
+  const path = usePath();
   if (!st.mocks.length) return null;
-  if (!exam.levels)
-    return (
-      <section>
-        <h3>История</h3>
-        <table className="tbl">
-          <thead>
-            <tr>
-              <th>Дата</th>
-              <th>Баллы</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...st.mocks].reverse().map((m) => (
-              <tr key={m.date}>
-                <td>{when(m.date)}</td>
-                <td>
-                  {fmt(m.red)}/{fmt(m.redMax)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-    );
+  const levels = !!exam.levels;
+  // Разбор есть у попыток, сохранённых вместе с вопросами; у старых и пришедших по ссылке — только баллы.
+  const anyReview = st.mocks.some((m) => m.qs?.length);
   return (
     <section>
       <h3>История</h3>
@@ -534,24 +618,28 @@ function MockHistory() {
         <thead>
           <tr>
             <th>Дата</th>
-            <th>Уровень</th>
-            <th>
-              <Star scale="red" />
-            </th>
-            <th>
-              <Star scale="black" />
-            </th>
+            {levels && <th>Уровень</th>}
+            <th>{levels ? <Star scale="red" /> : 'Баллы'}</th>
+            {levels && (
+              <th>
+                <Star scale="black" />
+              </th>
+            )}
+            {anyReview && <th />}
           </tr>
         </thead>
         <tbody>
           {[...st.mocks].reverse().map((m) => (
             <tr key={m.date}>
               <td>{when(m.date)}</td>
-              <td>{m.mode === 'basic' ? 'основной' : 'продвинутый'}</td>
+              {levels && <td>{m.mode === 'basic' ? 'основной' : 'продвинутый'}</td>}
               <td>
                 {fmt(m.red)}/{fmt(m.redMax)}
               </td>
-              <td>{m.mode === 'all' ? `${fmt(m.black)}/${fmt(m.blackMax)}` : '—'}</td>
+              {levels && <td>{m.mode === 'all' ? `${fmt(m.black)}/${fmt(m.blackMax)}` : '—'}</td>}
+              {anyReview && (
+                <td className="tbl-end">{m.qs?.length ? <Link to={path(`/mock?attempt=${m.date}`)}>Разбор →</Link> : null}</td>
+              )}
             </tr>
           ))}
         </tbody>

@@ -24,6 +24,16 @@ describe('progress export and import', () => {
     expect(JSON.parse(s.exportJson())).toEqual(JSON.parse(OLD_FILE));
   });
 
+  it('keeps the questions and scores of a mock for the review', () => {
+    const s = new ProgressStore('test');
+    s.importJson(OLD_FILE, own);
+    const qs = [{ n: 1, section: 'Задачи' as const, scales: ['red' as const], parts: [{ label: 'Решение', max: 1 }], taskId: 'limit-1' }];
+    s.addMock({ date: 1790000100000, mode: 'basic', red: 0.5, redMax: 1, black: 0, blackMax: 0, qs, scores: { '1:0': 0.5 } });
+    const back = new ProgressStore('test2');
+    back.importJson(s.exportJson(), own);
+    expect(back.get().mocks[1]).toMatchObject({ qs, scores: { '1:0': 0.5 } });
+  });
+
   it('fills fields missing from old files', () => {
     const s = new ProgressStore('test');
     s.importJson('{"version":1,"items":{}}');
