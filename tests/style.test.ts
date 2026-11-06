@@ -75,6 +75,13 @@ describe('exam texts follow one style', () => {
         for (const t of e.tasks) expect(t.prompt, t.id).not.toMatch(formal);
       });
 
+      it('no «TODO» left from the scaffold (npm run new-exam)', () => {
+        for (const f of files(join('content', e.id), /\.ts$/)) {
+          const left = readFileSync(f, 'utf8').split('\n').filter((l) => /\bTODO\b/.test(l)).length;
+          expect(left, `${f}: строк с TODO — ${left}; сводка: npm run exam-report -- ${e.id}`).toBe(0);
+        }
+      });
+
       it('links inside content lead to this exam and its sections', () => {
         const allowed = new Set<string>([...e.features, ...PAGES]);
         const topics = new Set(e.topics.map((t) => t.id));
