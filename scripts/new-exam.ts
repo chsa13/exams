@@ -16,7 +16,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { exams } from '../content';
-import { GLYPHS } from '../src/ui/glyphs';
+import { GLYPHS, SITE_ICON } from '../src/ui/glyphs';
 import type { Exam, Feature, Kind, Level, MockSpec, Skill, StarColor } from '../src/content/schema';
 
 interface PlanUnit {
@@ -81,7 +81,7 @@ const kebab = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 if (!kebab.test(plan.id)) problems.push(`id «${plan.id}» — не kebab-case`);
 if (exams.some((e) => e.id === plan.id)) problems.push(`экзамен ${plan.id} уже есть`);
 const usedIcon = exams.find((e) => e.icon === plan.exam.icon);
-if (usedIcon || plan.exam.icon === '∑') problems.push(`значок ${plan.exam.icon} уже занят (${usedIcon?.id ?? 'значок сайта'})`);
+if (usedIcon || plan.exam.icon === SITE_ICON) problems.push(`значок ${plan.exam.icon} уже занят (${usedIcon?.id ?? 'значок сайта'})`);
 const unitIds = new Set<string>();
 const topicIds = new Set<string>();
 for (const t of plan.topics) {

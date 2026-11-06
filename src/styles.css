@@ -431,20 +431,23 @@ select {
   border-color: transparent;
   color: var(--text);
 }
-.brand-home {
+/* Имя сайта: на всех страницах слева, ведёт ко всем экзаменам. В шапке экзамена — серым, главное там экзамен. */
+.site-brand {
   flex: none;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  margin-left: -6px;
-  border-radius: var(--radius-sm);
-  color: var(--muted);
-  transition: background-color 140ms var(--ease), color 140ms var(--ease);
 }
-.brand-home:hover {
-  background: var(--surface-2);
+.site-brand-quiet {
+  color: var(--muted);
+}
+.site-brand-quiet:hover {
   color: var(--text);
+}
+/* черта между именем сайта и экзаменом */
+.brand-sep {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  margin: 0 8px;
+  background: var(--border);
 }
 
 /* --- hub: список экзаменов --- */
@@ -2725,6 +2728,10 @@ p.timer-over {
   }
   .top-inner {
     flex-wrap: nowrap;
+  }
+  /* в шапке экзамена от имени сайта остаётся значок: строка не помещает и имя, и экзамен */
+  .site-brand-quiet .site-name {
+    display: none;
   }
   .timer {
     top: 8px;

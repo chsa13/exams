@@ -5,6 +5,7 @@ import { trackPage } from './analytics';
 import { catalogOf, examById } from './engine/catalog';
 import { ExamProvider, useCat, usePath } from './exam';
 import { ExamIcon, GlyphTile } from './ui/ExamIcon';
+import { SITE_ICON } from './ui/glyphs';
 import { ExamStars, LevelSwitch } from './ui/LevelSwitch';
 import { ThemeToggle } from './ui/ThemeToggle';
 import { HubPage } from './pages/HubPage';
@@ -18,7 +19,21 @@ import { MockPage } from './pages/MockPage';
 import { HowPage } from './pages/HowPage';
 import { SettingsPage } from './pages/SettingsPage';
 
-export const SITE_TITLE = 'Подготовка к экзаменам ЦУ';
+/** Имя сайта: в шапке списка экзаменов и в конце заголовка вкладки. CU — Central University, ЦУ. */
+export const SITE_NAME = 'FoCUs';
+/** Заголовок вкладки на списке экзаменов; на страницах экзамена — «<short> — FoCUs». */
+export const SITE_TITLE = `${SITE_NAME} — подготовка к экзаменам ЦУ`;
+
+/** Имя сайта со значком-видоискателем — ссылка ко всем экзаменам, слева в шапке на каждой странице.
+ *  В шапке экзамена тише (quiet): главное там — сам экзамен; на телефоне от имени остаётся только значок. */
+function SiteBrand({ quiet = false }: { quiet?: boolean }) {
+  return (
+    <NavLink to="/" end className={`brand site-brand ${quiet ? 'site-brand-quiet' : ''}`} title="Все экзамены" aria-label={quiet ? `${SITE_NAME}: все экзамены` : undefined}>
+      <GlyphTile symbol={SITE_ICON} color="red" small />
+      <span className="site-name">{SITE_NAME}</span>
+    </NavLink>
+  );
+}
 
 function ScrollTop() {
   const { pathname, search } = useLocation();
@@ -80,18 +95,9 @@ function HubLayout() {
     <>
       <header className="top">
         <div className="top-inner">
-          {/* Домик стоит и здесь, на том же месте, что в шапке экзамена: при переходе в экзамен значок и название не сдвигаются. */}
+          {/* Имя сайта стоит и в шапке экзамена, на том же месте: при переходе в экзамен оно не сдвигается. */}
           <div className="brand-row">
-            <NavLink to="/" className="brand-home" title="Все экзамены" aria-label="Все экзамены">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
-                <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              </svg>
-            </NavLink>
-            <NavLink to="/" className="brand">
-              <GlyphTile symbol="∑" color="red" small />
-              {SITE_TITLE}
-            </NavLink>
+            <SiteBrand />
           </div>
           <ThemeToggle />
         </div>
@@ -121,7 +127,7 @@ function ExamLayout() {
   const { examId } = useParams();
   const exam = examById.get(examId ?? '');
   useEffect(() => {
-    document.title = exam ? `${exam.short} — ${SITE_TITLE}` : SITE_TITLE;
+    document.title = exam ? `${exam.short} — ${SITE_NAME}` : SITE_TITLE;
   }, [exam]);
   if (!exam) return <Navigate to="/" replace />;
   return (
@@ -166,12 +172,8 @@ function ExamShell() {
       <header className="top" ref={headerRef}>
         <div className="top-inner">
           <div className="brand-row">
-            <NavLink to="/" className="brand-home" title="Все экзамены" aria-label="Все экзамены">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
-                <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              </svg>
-            </NavLink>
+            <SiteBrand quiet />
+            <span className="brand-sep" aria-hidden="true" />
             <NavLink to={p('/')} className="brand">
               <ExamIcon exam={exam} small />
               {exam.short} <ExamStars exam={exam} />
