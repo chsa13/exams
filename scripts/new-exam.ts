@@ -342,7 +342,10 @@ function editDesign(src: string): string {
 `;
   let out = src.replace(m[0], `${section}## ${nextLetter(letter)}. Правила контента`);
   const tree = out.split('\n');
-  const lastExam = tree.map((l) => /^  [a-z0-9-]+\/\s+#/.test(l)).lastIndexOf(true);
+  // Папки экзаменов — только в блоке content/ дерева (под src/ тоже есть строки вида «  pages/   #»).
+  const contentAt = tree.indexOf('content/');
+  let lastExam = -1;
+  for (let i = contentAt + 1; contentAt >= 0 && tree[i]?.startsWith('  '); i++) if (/^  [a-z0-9-]+\/\s+#/.test(tree[i])) lastExam = i;
   if (lastExam >= 0) tree.splice(lastExam + 1, 0, `  ${`${plan.id}/`.padEnd(26)}# ${plan.exam.short}`);
   out = tree.join('\n');
   return out;

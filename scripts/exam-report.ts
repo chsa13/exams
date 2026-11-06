@@ -130,7 +130,8 @@ if (planPath) {
 }
 
 const design = readFileSync(new URL('../DESIGN.md', import.meta.url), 'utf8');
-if (/\bTODO\b/.test(design)) warn.push('DESIGN.md: в разделе экзамена остались TODO');
+// «TODO» в кавычках — описание инструментов в самом DESIGN.md, не заготовка.
+if (/(^|[^«])\bTODO\b/m.test(design)) warn.push('DESIGN.md: в разделе экзамена остались TODO');
 
 console.log(warn.length ? `\nЗамечания (${warn.length}):\n- ${warn.join('\n- ')}` : '\nЗамечаний нет.');
 console.log(todos || howTodo ? `\nНе готово: ${todos} TODO.` : '\nTODO не осталось.');

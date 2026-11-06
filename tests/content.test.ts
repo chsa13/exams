@@ -317,3 +317,35 @@ describe('pilot-colloc', () => {
     expect(l!.theoryGate).toBe(4);
   });
 });
+
+describe('dm-kr2', () => {
+  const exam = exams.find((e) => e.id === 'dm-kr2')!;
+  const units = unitsOf(exam).filter((u) => !u.aux);
+
+  it('covers the question list: 14 definitions, 0 statements, 34 proofs', () => {
+    expect(units.filter((u) => u.definition).length).toBe(14);
+    expect(units.filter((u) => u.statement && !u.proof).length).toBe(0);
+    expect(units.filter((u) => u.proof).length).toBe(34);
+  });
+
+  it('mock matches the announcement', () => {
+    expect(exam.mock).toEqual({
+      kind: 'test',
+      title: 'Пробная КР',
+      minutes: 60,
+      slots: [
+        {
+          label: 'Сочетания с повторениями, шары и перегородки',
+          skills: ['stars-bars', 'binomial'],
+          points: 1,
+        },
+        { label: 'Тождество с биномиальными коэффициентами', skills: ['identities'], points: 1 },
+        { label: 'Линейная рекуррента второго порядка', skills: ['linear-rec', 'fibonacci'], points: 1 },
+        { label: 'Комбинаторная задача через рекурренту', skills: ['comb-rec'], points: 1 },
+        { label: 'Перестановки: циклы, порядок, чётность', skills: ['perms'], points: 1 },
+        { label: 'Угадывание и оптимальность', skills: ['guessing', 'restricted'], points: 1 },
+        { label: 'Задача повышенной сложности', skills: ['hard'], points: 1 },
+      ],
+    });
+  });
+});

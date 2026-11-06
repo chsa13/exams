@@ -219,6 +219,7 @@ interface Tip {
 }
 interface TipApi {
   show: (t: Tip) => void;
+  hover: (t: Tip) => void;
   keep: () => void;
   hideSoon: () => void;
   close: () => void;
@@ -227,9 +228,13 @@ interface TipApi {
 const TipCtx = createContext<TipApi | null>(null);
 
 /**
- * Подсказка на карте одна на всю таблицу: новая ячейка сразу заменяет прошлую подсказку.
- * Закрывается с задержкой — за это время мышь успевает перейти с ячейки на подсказку и нажать пункт.
+ * Подсказка на карте одна на всю таблицу. Закрывается с задержкой — за это время мышь успевает перейти
+ * с ячейки на подсказку и нажать пункт. По пути к подсказке мышь задевает соседние ячейки (подсказка стоит
+ * под ячейкой, а под ней — следующая строка), поэтому при наведении открытую подсказку другая ячейка
+ * заменяет не сразу, а через SWITCH_MS: дошла мышь до подсказки — замена отменяется.
  */
+const SWITCH_MS = 250;
+
 function ReadyTips({ children }: { children: ReactNode }) {
   const [tip, setTip] = useState<Tip | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -241,6 +246,12 @@ function ReadyTips({ children }: { children: ReactNode }) {
         clearTimeout(timer.current);
         setTip(t);
       },
+      hover: (t) => {
+        clearTimeout(timer.current);
+        if (!open.current) setTip(t);
+        else if (open.current !== t.id) timer.current = setTimeout(() => setTip(t), SWITCH_MS);
+      },
+      // мышь на подсказке: отменяем и закрытие, и замену подсказкой соседней ячейки
       keep: () => clearTimeout(timer.current),
       hideSoon: () => {
         clearTimeout(timer.current);
@@ -272,7 +283,8 @@ function Cell({ id, keys, to }: { id: string; keys: string[]; to: string }) {
   const pointer = useRef('mouse');
   if (!keys.length) return <div className="cell cell-empty" />;
   const r = readiness(keys, st);
-  const show = (el: HTMLElement, touch: boolean) => tips?.show({ id, keys, to, touch, at: el.getBoundingClientRect() });
+  const tipOf = (el: HTMLElement, touch: boolean): Tip => ({ id, keys, to, touch, at: el.getBoundingClientRect() });
+  const show = (el: HTMLElement, touch: boolean) => tips?.show(tipOf(el, touch));
   return (
     <Link
       to={to}
@@ -282,7 +294,7 @@ function Cell({ id, keys, to }: { id: string; keys: string[]; to: string }) {
       onPointerDown={(e) => {
         pointer.current = e.pointerType;
       }}
-      onMouseEnter={(e) => pointer.current !== 'touch' && show(e.currentTarget, false)}
+      onMouseEnter={(e) => pointer.current !== 'touch' && tips?.hover(tipOf(e.currentTarget, false))}
       onMouseLeave={() => pointer.current !== 'touch' && tips?.hideSoon()}
       onFocus={(e) => pointer.current !== 'touch' && show(e.currentTarget, false)}
       onBlur={() => pointer.current !== 'touch' && tips?.hideSoon()}
