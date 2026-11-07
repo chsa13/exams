@@ -192,6 +192,14 @@ describe('styles.css follows the design rules', () => {
     }
   });
 
+  it('dark theme greys are neutral, without a blue tint', () => {
+    for (const name of ['bg', 'surface', 'surface-2', 'text', 'text-2', 'muted', 'new']) {
+      const hex = token(dark, name);
+      const [r, b] = [1, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+      expect(b - r, `--${name} ${hex}`).toBeLessThanOrEqual(0);
+    }
+  });
+
   it('text on solid fills reaches 4.5:1 in both themes', () => {
     for (const block of [light, dark]) {
       for (const [fill, ink] of [

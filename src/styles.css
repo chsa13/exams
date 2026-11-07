@@ -45,27 +45,27 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #0e1219;
-    --surface: #161b24;
-    --surface-2: #202733;
-    --text: #e7ebf2;
-    --text-2: #c0c8d4;
-    --muted: #98a3b3;
-    --border: rgb(231 235 242 / 0.1);
-    --border-strong: rgb(231 235 242 / 0.28);
+    --bg: #141413;
+    --surface: #1c1c1b;
+    --surface-2: #282826;
+    --text: #e8e6e2;
+    --text-2: #c5c2bc;
+    --muted: #9d9993;
+    --border: rgb(232 230 226 / 0.1);
+    --border-strong: rgb(232 230 226 / 0.26);
     --accent: #ff6a43;
     --accent-hover: #ff8463;
     --accent-soft: #3a2119;
     --accent-ink: #ff8463;
     --on-accent: #1f0d07;
-    --on-solid: #0e1219;
-    --black-star: #e7ebf2;
+    --on-solid: #141413;
+    --black-star: #e8e6e2;
     --blue-star: #6f9dff;
     --known: #4cc27c;
     --known-solid: #4cc27c;
     --shaky: #f0b73a;
     --weak: #ff6a4d;
-    --new: #4a5363;
+    --new: #4a4946;
     --heat: #2f8f5a;
     --ok-bg: #18301f;
     --bad-bg: #3a1d17;
@@ -76,27 +76,27 @@
 
 /* Тема, выбранная вручную. Значения те же, что в блоке выше (проверяет тест). */
 :root[data-theme='dark'] {
-  --bg: #0e1219;
-  --surface: #161b24;
-  --surface-2: #202733;
-  --text: #e7ebf2;
-  --text-2: #c0c8d4;
-  --muted: #98a3b3;
-  --border: rgb(231 235 242 / 0.1);
-  --border-strong: rgb(231 235 242 / 0.28);
+  --bg: #141413;
+  --surface: #1c1c1b;
+  --surface-2: #282826;
+  --text: #e8e6e2;
+  --text-2: #c5c2bc;
+  --muted: #9d9993;
+  --border: rgb(232 230 226 / 0.1);
+  --border-strong: rgb(232 230 226 / 0.26);
   --accent: #ff6a43;
   --accent-hover: #ff8463;
   --accent-soft: #3a2119;
   --accent-ink: #ff8463;
   --on-accent: #1f0d07;
-  --on-solid: #0e1219;
-  --black-star: #e7ebf2;
+  --on-solid: #141413;
+  --black-star: #e8e6e2;
   --blue-star: #6f9dff;
   --known: #4cc27c;
   --known-solid: #4cc27c;
   --shaky: #f0b73a;
   --weak: #ff6a4d;
-  --new: #4a5363;
+  --new: #4a4946;
   --heat: #2f8f5a;
   --ok-bg: #18301f;
   --bad-bg: #3a1d17;
