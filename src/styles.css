@@ -2008,6 +2008,13 @@ button.danger-solid:hover {
   padding-left: 12px;
   margin: 8px 0;
 }
+/* крестик сразу после «Подсказка N» закрывает подсказку; маленький и серый, чтобы не спорить с текстом */
+.hint-close {
+  width: 24px;
+  min-height: 24px;
+  margin: -4px 0 0 4px;
+  vertical-align: middle;
+}
 
 /* --- mock --- */
 .timer {

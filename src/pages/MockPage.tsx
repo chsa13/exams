@@ -492,6 +492,16 @@ function MockReview({ qs, scores, rules }: { qs: TicketQuestion[]; scores: Recor
   );
 }
 
+/** Решение задачи или эталон ответа: одна кнопка открывает и закрывает, как в банке задач. */
+function RevealButton({ open, setOpen, task }: { open: boolean; setOpen: (v: boolean) => void; task: boolean }) {
+  const what = task ? 'решение' : 'эталон';
+  return (
+    <button aria-expanded={open} onClick={() => setOpen(!open)}>
+      {open ? 'Скрыть' : 'Показать'} {what}
+    </button>
+  );
+}
+
 function ReviewQuestion({ q, got, locked }: { q: TicketQuestion; got: (i: number) => number; locked: boolean }) {
   const [open, setOpen] = useState(false);
   const cat = useCat();
@@ -516,9 +526,8 @@ function ReviewQuestion({ q, got, locked }: { q: TicketQuestion; got: (i: number
         </p>
       )}
       {locked && <p className="small muted">Не засчитано: теория не сдана.</p>}
-      {!open ? (
-        <button onClick={() => setOpen(true)}>{q.task ? 'Показать решение' : 'Показать эталон'}</button>
-      ) : (
+      <RevealButton open={open} setOpen={setOpen} task={!!q.task} />
+      {open && (
         <>
           <div className="answer">{q.task ? <Md text={q.task.answer} /> : <FacetBody unit={q.facet!.unit} kind={q.facet!.kind} />}</div>
           {q.facet && (
@@ -643,16 +652,9 @@ function AnswerQuestion({
         {q.task && cat.exam.mock.kind === 'test' && <span className="tag">{TASK_TYPE_LABEL[q.task.type]}</span>}
       </div>
       <div className="tq-body">{q.task ? <Md text={q.task.prompt} /> : <b>{q.facet!.unit.title}</b>}</div>
-      {!open ? (
-        <button onClick={() => setOpen(true)}>{q.task ? 'Показать решение' : 'Показать эталон'}</button>
-      ) : q.task ? (
-        <div className="answer">
-          <Md text={q.task.answer} />
-        </div>
-      ) : (
-        <div className="answer">
-          <FacetBody unit={q.facet!.unit} kind={q.facet!.kind} />
-        </div>
+      <RevealButton open={open} setOpen={setOpen} task={!!q.task} />
+      {open && (
+        <div className="answer">{q.task ? <Md text={q.task.answer} /> : <FacetBody unit={q.facet!.unit} kind={q.facet!.kind} />}</div>
       )}
       {q.parts.map((p, i) => {
         const k = `${q.n}:${i}`;

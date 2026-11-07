@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { TASK_TYPE_LABEL, type Task, type TaskType } from '../content/schema';
 import { orderByPriority, taskKey } from '../engine/catalog';
@@ -114,8 +114,12 @@ export function TasksPage() {
 export function TaskCard({ task, n, showGrade = true }: { task: Task; n?: number; showGrade?: boolean }) {
   const cat = useCat();
   const st = useProgress();
-  const [hints, setHints] = useState(0);
+  // какие подсказки открыты; «Подсказка» открывает первую закрытую по порядку, крестик закрывает свою
+  const [shown, setShown] = useState<boolean[]>(() => task.hints.map(() => false));
+  const nextHint = shown.indexOf(false);
   const [open, setOpen] = useState(false);
+  // решение можно открыть и закрыть несколько раз, а в статистику занятий идёт только первое открытие
+  const counted = useRef(false);
   const key = taskKey(task);
   return (
     <article className="task" id={`t-${task.id}`}>
@@ -128,11 +132,20 @@ export function TaskCard({ task, n, showGrade = true }: { task: Task; n?: number
         <StatusDot status={st.items[key]?.status ?? 'new'} />
       </header>
       <Md text={task.prompt} />
-      {task.hints.slice(0, hints).map((h, i) => (
-        <div key={i} className="hint">
-          <span className="label">Подсказка {i + 1}</span> <Md text={h} />
-        </div>
-      ))}
+      {task.hints.map(
+        (h, i) =>
+          shown[i] && (
+            <div key={i} className="hint">
+              <span className="label">Подсказка {i + 1}</span>
+              <button className="icon-btn hint-close" aria-label={`Закрыть подсказку ${i + 1}`} title="Закрыть подсказку" onClick={() => setShown(shown.map((v, j) => (j === i ? false : v)))}>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true">
+                  <path d="M6 6l12 12M18 6 6 18" />
+                </svg>
+              </button>{' '}
+              <Md text={h} />
+            </div>
+          ),
+      )}
       {open && (
         <div className="answer">
           <div className="label">Решение</div>
@@ -140,17 +153,20 @@ export function TaskCard({ task, n, showGrade = true }: { task: Task; n?: number
         </div>
       )}
       <div className="row">
-        {hints < task.hints.length && !open && <button onClick={() => setHints(hints + 1)}>Подсказка</button>}
-        {!open && (
-          <button
-            onClick={() => {
-              setOpen(true);
+        {/* подсказки открываются и после решения: разобраться, с какой идеи надо было начать */}
+        {nextHint >= 0 && <button onClick={() => setShown(shown.map((v, j) => (j === nextHint ? true : v)))}>Подсказка</button>}
+        <button
+          aria-expanded={open}
+          onClick={() => {
+            setOpen(!open);
+            if (!open && !counted.current) {
+              counted.current = true;
               countActivity(cat.exam.id, 'tasks');
-            }}
-          >
-            Показать решение
-          </button>
-        )}
+            }
+          }}
+        >
+          {open ? 'Скрыть решение' : 'Показать решение'}
+        </button>
         {task.source && <span className="task-source">{task.source}</span>}
       </div>
       {open && showGrade && <Grade itemKey={key} current={st.items[key]?.status} hotkeys={false} />}
