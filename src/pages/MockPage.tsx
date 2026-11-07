@@ -501,7 +501,7 @@ function ReviewQuestion({ q, got, locked }: { q: TicketQuestion; got: (i: number
   return (
     <div className="tq">
       <div className="tq-head">
-        <ScaleMark scales={q.scales} />
+        <ScaleMark scales={q.scales} star={q.task?.star} />
         <span className="tq-n">{q.task && cat.exam.mock.kind === 'test' ? 'Задача' : 'Вопрос'} {q.n}</span>
         {q.facet && <span className="tag">{KIND_LABEL[q.facet.kind]}</span>}
         {q.task && cat.exam.mock.kind === 'test' && <span className="tag">{TASK_TYPE_LABEL[q.task.type]}</span>}
@@ -602,7 +602,7 @@ function TicketList({ qs }: { qs: TicketQuestion[] }) {
             {list.map((q) => (
               <div key={q.n} className="tq" id={`q-${q.n}`}>
                 <div className="tq-head">
-                  <ScaleMark scales={q.scales} />
+                  <ScaleMark scales={q.scales} star={q.task?.star} />
                   <span className="tq-n">{q.task && cat.exam.mock.kind === 'test' ? 'Задача' : 'Вопрос'} {q.n}</span>
                   <b>{q.parts.map((p) => fmt(p.max)).join(' + ')} б.</b>
                 </div>
@@ -637,7 +637,7 @@ function AnswerQuestion({
   return (
     <div className="tq" id={`q-${q.n}`}>
       <div className="tq-head">
-        <ScaleMark scales={q.scales} />
+        <ScaleMark scales={q.scales} star={q.task?.star} />
         <span className="tq-n">{q.task && cat.exam.mock.kind === 'test' ? 'Задача' : 'Вопрос'} {q.n}</span>
         {q.facet && <span className="tag">{KIND_LABEL[q.facet.kind]}</span>}
         {q.task && cat.exam.mock.kind === 'test' && <span className="tag">{TASK_TYPE_LABEL[q.task.type]}</span>}

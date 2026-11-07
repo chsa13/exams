@@ -97,6 +97,10 @@ for (const exam of exams) {
       for (const t of exam.tasks) expect(topicIds.has(t.topic), t.id).toBe(true);
     });
 
+    it('task difficulty stars only on exams without levels', () => {
+      if (exam.levels) for (const t of exam.tasks) expect(t.star, t.id).toBeUndefined();
+    });
+
     it('tasks have positive points and an answer', () => {
       for (const t of exam.tasks) {
         expect(t.points, t.id).toBeGreaterThan(0);
@@ -321,6 +325,11 @@ describe('pilot-colloc', () => {
 describe('dm-kr2', () => {
   const exam = exams.find((e) => e.id === 'dm-kr2')!;
   const units = unitsOf(exam).filter((u) => !u.aux);
+
+  it('every task has a difficulty star as in the past variants; hard tasks are black', () => {
+    for (const t of exam.tasks) expect(t.star, t.id).toBeDefined();
+    for (const t of exam.tasks.filter((x) => x.skill === 'hard')) expect(t.star, t.id).toBe('black');
+  });
 
   it('covers the question list: 14 definitions, 0 statements, 34 proofs', () => {
     expect(units.filter((u) => u.definition).length).toBe(14);

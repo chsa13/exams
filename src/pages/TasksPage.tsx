@@ -121,7 +121,7 @@ export function TaskCard({ task, n, showGrade = true }: { task: Task; n?: number
     <article className="task" id={`t-${task.id}`}>
       <header className="task-head">
         {n !== undefined && <span className="task-n">{n}</span>}
-        <ScaleMark scales={task.scales} />
+        <ScaleMark scales={task.scales} star={task.star} />
         <span className="tag">{TASK_TYPE_LABEL[task.type]}</span>
         <span className="task-topic">{cat.topicById.get(task.topic)?.title}</span>
         <span className="task-points">{fmt(task.points)} б.</span>

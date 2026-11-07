@@ -30,9 +30,16 @@ const STAR_TITLE: Record<StarColor, string> = {
   blue: 'Синяя математика',
 };
 
-export function Star({ scale }: { scale: StarColor }) {
+/** Подписи звёздочки сложности у задачи (Task.star). */
+const TASK_STAR_TITLE: Record<StarColor, string> = {
+  blue: 'Задача попроще',
+  red: 'Задача средней сложности',
+  black: 'Сложная задача',
+};
+
+export function Star({ scale, title }: { scale: StarColor; title?: string }) {
   return (
-    <span className={`star star-${scale}`} title={STAR_TITLE[scale]}>
+    <span className={`star star-${scale}`} title={title ?? STAR_TITLE[scale]}>
       ✱
     </span>
   );
@@ -82,10 +89,14 @@ export function LevelMark({ level }: { level: Level }) {
   return exam.star ? <Star scale={exam.star} /> : null;
 }
 
-/** Значок у задачи или вопроса билета: шкалы зачёта, а у экзамена без уровней — звёздочка курса. */
-export function ScaleMark({ scales }: { scales: Scale[] }) {
+/**
+ * Значок у задачи или вопроса билета: шкалы зачёта, а у экзамена без уровней — звёздочка сложности задачи
+ * (как в вариантах контрольной), если её нет — звёздочка курса.
+ */
+export function ScaleMark({ scales, star }: { scales: Scale[]; star?: StarColor }) {
   const { exam } = useCat();
   if (exam.levels) return <Stars scales={scales} />;
+  if (star) return <Star scale={star} title={TASK_STAR_TITLE[star]} />;
   return exam.star ? <Star scale={exam.star} /> : null;
 }
 
