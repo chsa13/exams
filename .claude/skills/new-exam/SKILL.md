@@ -131,6 +131,8 @@ npx vite preview                                          # http://localhost:417
 - `mock` — ровно `MockSpec` из `src/content/schema.ts`: у коллоквиума `{ "kind": "ticket", "title": "Пробный билет",
   "prepMin": 45, "answerMin": 30, "layout": { "definitions": 4, "statements": 3, "proofs": 1, "taskSlots": [ … ] } }`
   (+ `proofPoints`, `theoryGate`, `scoreCap` по образцу `pilot-colloc`).
+  Если лектор делит вопросы на списки (лёгкие / содержательные) — `layout.proofLists` и `"list"` у каждой теоремы,
+  по образцу `linal-colloc`.
 - `file` — несколько тем в одном файле (как у образцов); по умолчанию файл = `id` темы.
 - Необязательные поля можно не писать. Скрипт проверит id, значок, ссылки `uses`/`lemmas` и темы в позициях.
 - Поля конфига пишутся по таблице `CLAUDE.md` §3 — тесты стиля их проверят.

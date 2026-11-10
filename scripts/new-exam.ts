@@ -28,6 +28,8 @@ interface PlanUnit {
   uses?: string[];
   lemmas?: string[];
   aux?: boolean;
+  /** Список вопросов (TicketLayout.proofLists), если лектор разбил вопросы на списки. */
+  list?: string;
 }
 
 interface PlanTopic {
@@ -42,7 +44,7 @@ interface PlanTopic {
 interface Plan {
   id: string;
   /** Образец из CLAUDE.md §2 — для комментария в конфиге и раздела DESIGN.md. */
-  template: 'mia-colloc' | 'matan-colloc' | 'pilot-colloc' | 'linal-kr2';
+  template: 'mia-colloc' | 'matan-colloc' | 'pilot-colloc' | 'linal-kr2' | 'linal-colloc';
   exam: {
     subject: string;
     kind: string;
@@ -86,17 +88,25 @@ const unitIds = new Set<string>();
 const topicIds = new Set<string>();
 for (const t of plan.topics) {
   if (!kebab.test(t.id) || topicIds.has(t.id)) problems.push(`тема ${t.id}: id не kebab-case или повторяется`);
+  if (t.title.includes('$')) problems.push(`тема ${t.id}: в названии формула $…$ — пиши юникодом`);
   topicIds.add(t.id);
   for (const u of t.units) {
     if (!kebab.test(u.id) || unitIds.has(u.id)) problems.push(`единица ${u.id}: id не kebab-case или повторяется`);
     unitIds.add(u.id);
     if (!Object.keys(u.facets).length) problems.push(`единица ${u.id}: нет ни одной грани`);
+    if (u.title.includes('$')) problems.push(`единица ${u.id}: в названии формула $…$ — названия не рендерятся, пиши юникодом (ℝ³, Aᵀ, ≤)`);
     if (!plan.exam.levels && Object.values(u.facets).some((l) => l !== 'basic')) problems.push(`единица ${u.id}: без уровней всё basic`);
   }
 }
 for (const t of plan.topics)
   for (const u of t.units)
     for (const ref of [...(u.uses ?? []), ...(u.lemmas ?? [])]) if (!unitIds.has(ref)) problems.push(`${u.id}: ссылка на неизвестную единицу ${ref}`);
+const lists = plan.mock.kind === 'ticket' ? (plan.mock.layout?.proofLists ?? []) : [];
+for (const t of plan.topics)
+  for (const u of t.units) {
+    if (u.list && !lists.some((l) => l.id === u.list)) problems.push(`${u.id}: нет списка ${u.list} в mock.layout.proofLists`);
+    if (lists.length && u.facets.proof && !u.aux && !u.list) problems.push(`${u.id}: доказательство без списка (list)`);
+  }
 const slots = plan.mock.kind === 'test' ? plan.mock.slots : (plan.mock.layout?.taskSlots ?? []);
 for (const s of slots) for (const t of s.topics ?? []) if (!topicIds.has(t)) problems.push(`позиция «${s.label}»: нет темы ${t}`);
 if (problems.length) {
@@ -138,6 +148,7 @@ function unitStub(u: PlanUnit): string {
   const i = '      ';
   const out = [`${i}id: ${str(u.id)},`, `${i}title: ${str(u.title)},`, `${i}source: ${str(u.source)},`];
   if (u.aux) out.push(`${i}aux: true,`);
+  if (u.list) out.push(`${i}list: ${str(u.list)},`);
   for (const k of ['definition', 'statement'] as const)
     if (u.facets[k]) out.push(`${i}${k}: { level: '${u.facets[k]}', text: ${TODO} },`);
   if (u.facets.proof)
@@ -356,6 +367,10 @@ function testBlock(): string {
   const d = units.filter((u) => u.facets.definition).length;
   const s = units.filter((u) => u.facets.statement && !u.facets.proof).length;
   const p = units.filter((u) => u.facets.proof).length;
+  const lists = plan.mock.kind === 'ticket' ? (plan.mock.layout?.proofLists ?? []) : [];
+  const perList = lists
+    .map((l) => `    expect(units.filter((u) => u.list === '${l.id}').length).toBe(${units.filter((u) => u.list === l.id).length});`)
+    .join('\n');
   return `
 describe('${plan.id}', () => {
   const exam = exams.find((e) => e.id === '${plan.id}')!;
@@ -364,7 +379,7 @@ describe('${plan.id}', () => {
   it('covers the question list: ${d} definitions, ${s} statements, ${p} proofs', () => {
     expect(units.filter((u) => u.definition).length).toBe(${d});
     expect(units.filter((u) => u.statement && !u.proof).length).toBe(${s});
-    expect(units.filter((u) => u.proof).length).toBe(${p});
+    expect(units.filter((u) => u.proof).length).toBe(${p});${perList ? '\n' + perList : ''}
   });
 
   it('mock matches the announcement', () => {

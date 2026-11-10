@@ -46,6 +46,7 @@ export function ProofsPage() {
                     <StatusDot status={st.items[p.key]?.status ?? 'new'} /> <LevelMark level={p.level} />{' '}
                     <Link to={path(`/proofs/${p.unit.id}`)}>{p.unit.title}</Link>
                     {p.unit.aux && <> <span className="tag">лемма</span></>}
+                    {listTag(cat.exam.mock, p.unit.list) && <> <span className="tag">{listTag(cat.exam.mock, p.unit.list)}</span></>}
                   </span>
                   <span className="plist-meta">
                     {count(p.unit.proof!.steps.length, 'шаг', 'шага', 'шагов')}
@@ -126,7 +127,7 @@ function StepsMode({ unitId }: { unitId: string }) {
   const lemmas = cat.lemmaChain(unit);
   // Отдельные 0,5 за формулировку — только в билете, где доказательство оценивается как «0,5 + 2».
   const { mock } = cat.exam;
-  const stmtPoints = mock.kind === 'ticket' && !mock.layout?.proofPoints ? ' (0,5 балла)' : '';
+  const stmtPoints = mock.kind === 'ticket' && !mock.layout?.proofPoints && !mock.layout?.proofLists ? ' (0,5 балла)' : '';
   const [stmtOpen, setStmtOpen] = useState(false);
   const [ideaOpen, setIdeaOpen] = useState(false);
   const [shown, setShown] = useState(0);
@@ -248,9 +249,21 @@ function lemmaLabel(title: string) {
   return /^лемма/i.test(title) ? title : `Лемма: ${title}`;
 }
 
+/** Метка списка вопросов («лёгкий», «содержательный»), если билет берёт теоремы из нескольких списков. */
+function listTag(mock: MockSpec, list: string | undefined): string | undefined {
+  if (mock.kind !== 'ticket' || !list) return undefined;
+  return mock.layout?.proofLists?.find((l) => l.id === list)?.tag;
+}
+
 /** Сколько дают за доказательство в билете — по конфигу пробника. */
 function proofRule(mock: MockSpec): ReactNode {
   if (mock.kind === 'test') return 'На контрольной надо объяснять, почему ответ верен, — а для этого нужно понимать, почему верны теоремы.';
+  const lists = mock.layout?.proofLists;
+  if (lists) {
+    const parts = lists.map((l) => `${count(l.count, 'вопрос', 'вопроса', 'вопросов')} с меткой «${l.tag}»`);
+    const pts = [...new Set(lists.map((l) => fmt(l.points)))].join(' / ');
+    return `В билете ${parts.join(' и ')}, по ${pts} балла за формулировку вместе с доказательством.`;
+  }
   const points = mock.layout?.proofPoints;
   if (points) {
     const sorted = [...points].sort((a, b) => a - b).map(fmt);

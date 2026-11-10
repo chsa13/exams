@@ -358,3 +358,51 @@ describe('dm-kr2', () => {
     });
   });
 });
+
+describe('linal-colloc', () => {
+  const exam = exams.find((e) => e.id === 'linal-colloc')!;
+  const units = unitsOf(exam).filter((u) => !u.aux);
+
+  it('covers the question list: 42 definitions, 0 statements, 49 proofs', () => {
+    expect(units.filter((u) => u.definition).length).toBe(42);
+    expect(units.filter((u) => u.statement && !u.proof).length).toBe(0);
+    expect(units.filter((u) => u.proof).length).toBe(49);
+    expect(units.filter((u) => u.list === 'easy').length).toBe(32);
+    expect(units.filter((u) => u.list === 'core').length).toBe(17);
+  });
+
+  it('mock matches the announcement', () => {
+    expect(exam.mock).toEqual({
+      kind: 'ticket',
+      title: 'Пробный билет',
+      prepMin: 40,
+      answerMin: 20,
+      layout: {
+        definitions: 0,
+        statements: 0,
+        proofs: 0,
+        proofLists: [
+          { id: 'easy', title: 'Лёгкий вопрос', tag: 'лёгкий', count: 2, points: 2 },
+          { id: 'core', title: 'Содержательный вопрос', tag: 'содержательный', count: 1, points: 2 },
+        ],
+        taskSlots: [
+          { label: 'Задача на понимание', points: 2 },
+          { label: 'Задача на понимание', points: 2 },
+        ],
+      },
+    });
+  });
+});
+
+describe('question lists (layout.proofLists)', () => {
+  for (const e of exams) {
+    const lists = e.mock.kind === 'ticket' ? e.mock.layout?.proofLists : undefined;
+    if (!lists) continue;
+    it(`${e.id}: every theorem is in a known list and each list has enough theorems`, () => {
+      const ids = new Set(lists.map((l) => l.id));
+      const theorems = unitsOf(e).filter((u) => u.proof && !u.aux);
+      for (const u of theorems) expect(ids.has(u.list ?? ''), `${u.id}: list «${u.list}»`).toBe(true);
+      for (const l of lists) expect(theorems.filter((u) => u.list === l.id).length, l.id).toBeGreaterThanOrEqual(l.count);
+    });
+  }
+});

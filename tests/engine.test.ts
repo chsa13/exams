@@ -24,6 +24,23 @@ describe('test mock', () => {
   });
 });
 
+describe('ticket from question lists', () => {
+  const lc = catalogOf(exams.find((e) => e.id === 'linal-colloc')!);
+
+  it('linal-colloc: 2 easy + 1 core theorems and 2 tasks, 2 points each, 10 in total', () => {
+    for (let i = 0; i < 50; i++) {
+      const qs = generateMock(lc, 'basic');
+      expect(qs.length).toBe(5);
+      const lists = qs.filter((q) => q.facet).map((q) => q.facet!.unit.list);
+      expect(lists).toEqual(['easy', 'easy', 'core']);
+      expect(qs.filter((q) => q.facet).every((q) => q.facet!.kind === 'proof' && q.parts.length === 1)).toBe(true);
+      expect(qs.filter((q) => q.task).length).toBe(2);
+      expect(new Set(qs.map((q) => q.facet?.unit.id ?? q.task!.id)).size).toBe(5);
+      expect(totals(qs, {}).redMax).toBe(10);
+    }
+  });
+});
+
 describe('ticket', () => {
   it('basic ticket: 11 questions, 11 red points, nothing black-only', () => {
     for (let i = 0; i < 50; i++) {

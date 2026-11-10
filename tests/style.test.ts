@@ -70,6 +70,13 @@ describe('exam texts follow one style', () => {
         }
       });
 
+      it('topic and question titles are plain text, without $…$ (titles are not rendered as formulas)', () => {
+        for (const t of e.topics) {
+          expect(t.title, t.id).not.toMatch(/\$/);
+          for (const u of t.units) expect(u.title, u.id).not.toMatch(/\$/);
+        }
+      });
+
       it('task prompts address the reader as «ты»', () => {
         const formal = /(^|[^а-яё])(найдите|докажите|проверьте|объясните|обоснуйте|выпишите|постройте|опишите|выразите)(?![а-яё])/i;
         for (const t of e.tasks) expect(t.prompt, t.id).not.toMatch(formal);

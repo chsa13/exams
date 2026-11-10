@@ -96,9 +96,9 @@ const numbered = (qs: Draft[]): TicketQuestion[] => qs.map((q, i) => ({ ...q, n:
 /** Выбор граней без повторов единиц (вспомогательные единицы в билет не идут). */
 function facetPicker(cat: Catalog) {
   const used = new Set<string>();
-  return (kind: Facet['kind'], level: Facet['level'], n: number) =>
+  return (kind: Facet['kind'], level: Facet['level'], n: number, list?: string) =>
     take(
-      cat.facets.filter((f) => f.kind === kind && f.level === level && !f.unit.aux),
+      cat.facets.filter((f) => f.kind === kind && f.level === level && !f.unit.aux && (list === undefined || f.unit.list === list)),
       n,
       used,
       (f) => f.unit.id,
@@ -123,7 +123,10 @@ function pickForSlot(pool: Task[], slot: MockSlot, used: Set<string>): Task | un
 export function generateLayoutTicket(cat: Catalog, mode: Mode, layout: TicketLayout): TicketQuestion[] {
   const pick = facetPicker(cat);
   // Доказательства первыми, чтобы та же теорема не попала в формулировки.
-  const proofs = pick('proof', 'basic', layout.proofPoints?.length ?? layout.proofs);
+  const listed = (layout.proofLists ?? []).flatMap((l) =>
+    pick('proof', 'basic', l.count, l.id).map((f) => ({ ...proofWholeQ(f, l.points), label: l.title })),
+  );
+  const proofs = layout.proofLists ? [] : pick('proof', 'basic', layout.proofPoints?.length ?? layout.proofs);
   const defs = pick('definition', 'basic', layout.definitions);
   const stmts = pick('statement', 'basic', layout.statements);
 
@@ -137,6 +140,7 @@ export function generateLayoutTicket(cat: Catalog, mode: Mode, layout: TicketLay
   return numbered([
     ...defs.map((f) => defQ(f, RED)),
     ...stmts.map((f) => stmtQ(f, RED)),
+    ...listed,
     ...proofQuestions(cat, proofs, layout),
     ...tasks,
   ]);

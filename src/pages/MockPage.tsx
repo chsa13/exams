@@ -513,7 +513,7 @@ function ReviewQuestion({ q, got, locked }: { q: TicketQuestion; got: (i: number
       <div className="tq-head">
         <ScaleMark scales={q.scales} star={q.task?.star} />
         <span className="tq-n">{q.task && cat.exam.mock.kind === 'test' ? 'Задача' : 'Вопрос'} {q.n}</span>
-        {q.facet && <span className="tag">{KIND_LABEL[q.facet.kind]}</span>}
+        {q.facet && <span className="tag">{q.label ?? KIND_LABEL[q.facet.kind]}</span>}
         {q.task && cat.exam.mock.kind === 'test' && <span className="tag">{TASK_TYPE_LABEL[q.task.type]}</span>}
         <span className="tq-score">
           <StatusDot status={scoreStatus(sum, max)} /> {fmt(sum)} из {fmt(max)}
@@ -573,11 +573,18 @@ function GateStatus({ qs, scores, rules }: { qs: TicketQuestion[]; scores: Recor
 function ticketBlocks(layout: TicketLayout | undefined, mode: Mode): [string, ReactNode, ReactNode][] {
   if (layout) {
     const proofs = layout.proofPoints?.length ?? layout.proofs;
+    const taskPoints = [...new Set(layout.taskSlots.map((s) => s.points ?? 1))];
     const rows: [string, ReactNode, ReactNode][] = [
       ['Определения', layout.definitions, 'по 0,5'],
       ['Формулировки', layout.statements, 'по 0,5'],
-      ['Доказательства', proofs, layout.proofPoints ? [...layout.proofPoints].sort((a, b) => a - b).map(fmt).join(' / ') : '0,5 + 2'],
-      [`Задачи: ${layout.taskSlots.map((s) => s.label.toLowerCase()).join('; ')}`, layout.taskSlots.length, 'по 1'],
+      ...(layout.proofLists
+        ? layout.proofLists.map((l): [string, ReactNode, ReactNode] => [`${l.title}: формулировка и доказательство`, l.count, `по ${fmt(l.points)}`])
+        : [['Доказательства', proofs, layout.proofPoints ? [...layout.proofPoints].sort((a, b) => a - b).map(fmt).join(' / ') : '0,5 + 2'] as [string, ReactNode, ReactNode]]),
+      [
+        `Задачи: ${[...new Set(layout.taskSlots.map((s) => s.label.toLowerCase()))].join('; ')}`,
+        layout.taskSlots.length,
+        taskPoints.length === 1 ? `по ${fmt(taskPoints[0])}` : taskPoints.map(fmt).join(' / '),
+      ],
     ];
     return rows.filter(([, n]) => n !== 0);
   }
@@ -613,6 +620,7 @@ function TicketList({ qs }: { qs: TicketQuestion[] }) {
                 <div className="tq-head">
                   <ScaleMark scales={q.scales} star={q.task?.star} />
                   <span className="tq-n">{q.task && cat.exam.mock.kind === 'test' ? 'Задача' : 'Вопрос'} {q.n}</span>
+                  {q.facet && q.label && <span className="tag">{q.label}</span>}
                   <b>{q.parts.map((p) => fmt(p.max)).join(' + ')} б.</b>
                 </div>
                 <div className="tq-body">{q.task ? <Md text={q.task.prompt} /> : questionTitle(cat, q)}</div>
@@ -648,7 +656,7 @@ function AnswerQuestion({
       <div className="tq-head">
         <ScaleMark scales={q.scales} star={q.task?.star} />
         <span className="tq-n">{q.task && cat.exam.mock.kind === 'test' ? 'Задача' : 'Вопрос'} {q.n}</span>
-        {q.facet && <span className="tag">{KIND_LABEL[q.facet.kind]}</span>}
+        {q.facet && <span className="tag">{q.label ?? KIND_LABEL[q.facet.kind]}</span>}
         {q.task && cat.exam.mock.kind === 'test' && <span className="tag">{TASK_TYPE_LABEL[q.task.type]}</span>}
       </div>
       <div className="tq-body">{q.task ? <Md text={q.task.prompt} /> : <b>{q.facet!.unit.title}</b>}</div>
