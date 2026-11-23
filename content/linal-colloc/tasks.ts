@@ -233,4 +233,89 @@ export const tasks: Task[] = [
     md`Представь матрицу $A=\begin{pmatrix}2&1&-3\\-4&-2&6\end{pmatrix}$ в виде произведения столбца на строку. Почему это возможно?`,
     [md`Найди ранг: как связаны строки?`],
     md`Вторая строка равна первой, умноженной на $-2$, поэтому $\operatorname{rk}A=1$: все столбцы кратны $(1,-2)^{\mathsf T}$. Значит, $A=\begin{pmatrix}1\\-2\end{pmatrix}\begin{pmatrix}2&1&-3\end{pmatrix}$. Это частный случай: матрица ранга $r$ — произведение матриц $m\times r$ и $r\times n$; при $r=1$ — «столбец на строку».`),
+
+  // ---------- Определители (лекция 11) ----------
+  t('d-sum', 'det', 'true-false', STYLE,
+    md`Верно ли, что $\det(A+B)=\det A+\det B$ для любых $A,B\in\operatorname{Mat}_2(\mathbb R)$?`,
+    [md`Определитель линеен по каждому столбцу отдельно, а не по всей матрице. Попробуй $A=B=I_2$.`],
+    md`**Неверно.** $A=B=I_2$: $\det(A+B)=\det(2I_2)=4$, а $\det A+\det B=2$. Определитель линеен по **каждому столбцу** при фиксированных остальных; при сложении матриц меняются все столбцы сразу, и раскрытие по линейности даёт $2^n$ слагаемых, а не два.`),
+  t('d-neg', 'det', 'true-false', STYLE,
+    md`Верно ли, что $\det(-A)=-\det A$ для любой $A\in\operatorname{Mat}_4(\mathbb R)$? А для $A\in\operatorname{Mat}_3(\mathbb R)$?`,
+    [md`$-A$ — это каждый из $n$ столбцов, умноженный на $-1$.`],
+    md`Из каждого из $n$ столбцов выносится $-1$: $\det(-A)=(-1)^n\det A$.
+
+- $n=4$: **неверно**, $\det(-A)=\det A$. Контрпример: $\det(-I_4)=1\ne-1$.
+- $n=3$: **верно**, $(-1)^3=-1$.`),
+  t('d-skew', 'det', 'prove', STYLE,
+    md`Матрица $A\in\operatorname{Mat}_3(\mathbb R)$ кососимметрична: $A^{\mathsf T}=-A$. Докажи, что $A$ необратима.`,
+    [md`Посчитай $\det A^{\mathsf T}$ двумя способами.`, md`$\det(-A)=(-1)^3\det A$.`],
+    md`$\det A=\det A^{\mathsf T}=\det(-A)=(-1)^3\det A=-\det A$, поэтому $2\det A=0$ и $\det A=0$. По критерию обратимости $A$ необратима.
+
+Для чётного размера это неверно: $\begin{pmatrix}0&1\\-1&0\end{pmatrix}$ кососимметрична, а её определитель $1$.`),
+  t('d-ab-ba', 'det', 'true-false', STYLE,
+    md`Пусть $A\in\operatorname{Mat}_{2\times3}(\mathbb R)$, $B\in\operatorname{Mat}_{3\times2}(\mathbb R)$. Верно ли, что $\det(AB)=\det(BA)$?`,
+    [md`Формула $\det(XY)=\det X\det Y$ — для квадратных матриц. Здесь $AB$ — $2\times2$, а $BA$ — $3\times3$.`, md`Оцени ранг $BA$.`],
+    md`**Неверно.** $\operatorname{rk}(BA)\le\operatorname{rk}A\le2<3$, поэтому $BA$ всегда необратима и $\det(BA)=0$. А $\det(AB)$ может быть ненулевым: $A=\begin{pmatrix}1&0&0\\0&1&0\end{pmatrix}$, $B=A^{\mathsf T}$ — тогда $AB=I_2$, $\det(AB)=1$, а $BA=\operatorname{diag}(1,1,0)$, $\det(BA)=0$. Для квадратных $A,B$ равенство верно: обе части равны $\det A\det B$.`),
+  t('d-integer-inverse', 'det', 'construct', STYLE,
+    md`Приведи пример недиагональной матрицы $A\in\operatorname{Mat}_2(\mathbb R)$ с целыми элементами, у которой $A^{-1}$ тоже с целыми элементами. Каким может быть $\det A$ у такой матрицы?`,
+    [md`$\det A\cdot\det A^{-1}=1$, и оба определителя — целые числа.`, md`Вспомни формулу $A^{-1}=\frac1{\det A}\operatorname{adj}A$.`],
+    md`Например, $A=\begin{pmatrix}2&1\\1&1\end{pmatrix}$: $\det A=1$, $A^{-1}=\operatorname{adj}A=\begin{pmatrix}1&-1\\-1&2\end{pmatrix}$.
+
+Определитель матрицы с целыми элементами — целое число (сумма произведений элементов). Из $\det A\det A^{-1}=\det I=1$ при целых сомножителях $\det A=\pm1$. Обратно, при $\det A=\pm1$ формула $A^{-1}=\pm\operatorname{adj}A$ даёт целые элементы.`),
+
+  // ---------- Инвариантные подпространства (лекция 12) ----------
+  t('i-sum-intersection', 'invariant', 'prove', STYLE,
+    md`Подпространства $\mathbb U$ и $\mathbb W$ инвариантны относительно оператора $\varphi$. Докажи, что $\mathbb U\cap\mathbb W$ и $\mathbb U+\mathbb W$ тоже инвариантны.`,
+    [md`Проверь определение: возьми вектор подпространства и посмотри, куда попадает его образ.`],
+    md`**Пересечение.** Если $\mathbf x\in\mathbb U\cap\mathbb W$, то $\varphi(\mathbf x)\in\mathbb U$ (так как $\mathbf x\in\mathbb U$) и $\varphi(\mathbf x)\in\mathbb W$ — значит, $\varphi(\mathbf x)\in\mathbb U\cap\mathbb W$.
+
+**Сумма.** Если $\mathbf x=\mathbf u+\mathbf w$, то $\varphi(\mathbf x)=\varphi(\mathbf u)+\varphi(\mathbf w)$, где $\varphi(\mathbf u)\in\mathbb U$, $\varphi(\mathbf w)\in\mathbb W$; это вектор из $\mathbb U+\mathbb W$.`),
+  t('i-rotation', 'invariant', 'construct', STYLE,
+    md`Найди все подпространства $\mathbb R^2$, инвариантные относительно поворота на угол $\pi/2$.`,
+    [md`Кроме $\{\mathbf 0\}$ и $\mathbb R^2$ может быть только прямая. Что значит, что прямая $\operatorname{span}\{\mathbf v\}$ инвариантна?`, md`Инвариантная прямая — это собственный вектор.`],
+    md`Только $\{\mathbf 0\}$ и $\mathbb R^2$. Других подпространств, кроме прямых, в $\mathbb R^2$ нет. Прямая $\operatorname{span}\{\mathbf v\}$ инвариантна $\iff\varphi(\mathbf v)=\lambda\mathbf v$, то есть $\mathbf v$ — собственный вектор. Но $\chi(t)=\det\begin{pmatrix}t&1\\-1&t\end{pmatrix}=t^2+1$ не имеет вещественных корней (и геометрически: поворот на $\pi/2$ переводит ненулевой вектор в перпендикулярный). Над $\mathbb C$ инвариантные прямые есть: $\operatorname{span}\{(1,-i)^{\mathsf T}\}$ и $\operatorname{span}\{(1,i)^{\mathsf T}\}$.`),
+  t('i-similar', 'invariant', 'true-false', STYLE,
+    md`Подобны ли матрицы $\begin{pmatrix}1&2\\3&4\end{pmatrix}$ и $\begin{pmatrix}1&0\\0&4\end{pmatrix}$? Верно ли, что две матрицы $2\times2$ с одинаковыми следом и определителем всегда подобны?`,
+    [md`У подобных матриц равны след и определитель.`, md`Для второго вопроса сравни $I_2$ и $\begin{pmatrix}1&1\\0&1\end{pmatrix}$.`],
+    md`**Не подобны:** следы равны ($5$ и $5$), но определители $-2$ и $4$ разные, а у подобных матриц определители совпадают: $\det(C^{-1}XC)=\det X$.
+
+**Второе — неверно.** У $I_2$ и $J=\begin{pmatrix}1&1\\0&1\end{pmatrix}$ след $2$ и определитель $1$, но $C^{-1}I_2C=I_2\ne J$ для любой обратимой $C$ — с $I_2$ подобна только она сама.`),
+  t('i-minpoly', 'invariant', 'construct', STYLE,
+    md`Найди минимальный и характеристический многочлены матрицы $A=\operatorname{diag}(2,2,3)$.`,
+    [md`Минимальный многочлен делит любой аннулирующий, а его корни — собственные значения.`, md`Проверь, аннулирует ли $A$ многочлен $(t-2)(t-3)$.`],
+    md`$\chi_A(t)=(t-2)^2(t-3)$. Минимальный: $(A-2I)(A-3I)=\operatorname{diag}(0,0,1)\cdot\operatorname{diag}(-1,-1,0)=0$, так что $(t-2)(t-3)$ аннулирует $A$. Меньшей степени не подойдёт: корни $m_A$ — все собственные значения $2$ и $3$, а $A-2I\ne0$, $A-3I\ne0$. Ответ: $m_A=(t-2)(t-3)$, $\chi_A=(t-2)^2(t-3)$ — кратности корней у них разные.`),
+  t('i-projector', 'invariant', 'construct', STYLE,
+    md`Найди матрицу проектора $\mathbb R^2$ на прямую $\operatorname{span}\{(1,2)^{\mathsf T}\}$ вдоль прямой $x_1+x_2=0$.`,
+    [md`Формула $P=B(AB)^{-1}A$, где столбец $B$ — базис образа, а строка $A$ — уравнение ядра.`],
+    md`$B=\begin{pmatrix}1\\2\end{pmatrix}$, $A=\begin{pmatrix}1&1\end{pmatrix}$, $AB=3$:
+$$P=\frac13\begin{pmatrix}1\\2\end{pmatrix}\begin{pmatrix}1&1\end{pmatrix}=\frac13\begin{pmatrix}1&1\\2&2\end{pmatrix}.$$
+Проверка: $P(1,2)^{\mathsf T}=(1,2)^{\mathsf T}$, $P(1,-1)^{\mathsf T}=\mathbf 0$, $P^2=P$.`),
+
+  // ---------- Собственные значения (лекция 13) ----------
+  t('e-odd-dim', 'eigen', 'true-false', STYLE,
+    md`Верно ли, что у любого линейного оператора на $\mathbb R^3$ есть собственный вектор? А на $\mathbb R^2$?`,
+    [md`Собственные значения — вещественные корни характеристического многочлена. Какой у него степени?`],
+    md`**На $\mathbb R^3$ — верно.** $\chi_\varphi$ — многочлен степени $3$ с вещественными коэффициентами; при $t\to\pm\infty$ он принимает значения разных знаков и по теореме о промежуточном значении имеет вещественный корень $\lambda$. Тогда $\ker(\varphi-\lambda\operatorname{Id})\ne\{\mathbf 0\}$ — собственный вектор есть.
+
+**На $\mathbb R^2$ — неверно:** у поворота на $\pi/2$ $\chi=t^2+1$, вещественных корней нет.`),
+  t('e-not-diag', 'eigen', 'true-false', STYLE,
+    md`Диагонализуема ли над $\mathbb R$ матрица $A=\begin{pmatrix}2&1&0\\0&2&0\\0&0&3\end{pmatrix}$?`,
+    [md`Найди алгебраические кратности по $\chi_A$ и геометрическую кратность $\lambda=2$ через ранг $A-2I$.`],
+    md`**Нет.** $\chi_A=(t-2)^2(t-3)$: $a_2=2$, $a_3=1$. $A-2I=\begin{pmatrix}0&1&0\\0&0&0\\0&0&1\end{pmatrix}$ имеет ранг $2$, поэтому $g_2=3-2=1<2=a_2$. По критерию диагонализуемости (геометрические кратности должны равняться алгебраическим) $A$ не диагонализуема: собственных векторов на базис не хватает.`),
+  t('e-involution', 'eigen', 'prove', STYLE,
+    md`Пусть $\varphi$ — оператор на $\mathbb R^n$ и $\varphi^2=\operatorname{Id}$. Докажи, что $\varphi$ диагонализуем.`,
+    [md`Какие собственные значения возможны?`, md`Разложи $\mathbf x=\frac12(\mathbf x+\varphi\mathbf x)+\frac12(\mathbf x-\varphi\mathbf x)$.`],
+    md`$t^2-1$ аннулирует $\varphi$, поэтому $\operatorname{Spec}\varphi\subseteq\{1,-1\}$. Для любого $\mathbf x$:
+$$\mathbf x=\underbrace{\tfrac12(\mathbf x+\varphi\mathbf x)}_{\mathbf x_+}+\underbrace{\tfrac12(\mathbf x-\varphi\mathbf x)}_{\mathbf x_-},$$
+и $\varphi\mathbf x_+=\frac12(\varphi\mathbf x+\mathbf x)=\mathbf x_+$, $\varphi\mathbf x_-=\frac12(\varphi\mathbf x-\mathbf x)=-\mathbf x_-$. Значит, $\mathbb R^n=E(1)+E(-1)$, а сумма собственных подпространств для разных значений прямая: $\mathbb R^n=E(1)\oplus E(-1)$. Оператор диагонализуем, в собственном базисе $\operatorname{diag}(1,\dots,1,-1,\dots,-1)$.`),
+  t('e-sum-diag', 'eigen', 'true-false', STYLE,
+    md`Верно ли, что сумма двух диагонализуемых матриц $2\times2$ над $\mathbb R$ диагонализуема?`,
+    [md`Ненулевая нильпотентная матрица не диагонализуема. Можно ли получить $\begin{pmatrix}0&1\\0&0\end{pmatrix}$ как сумму диагонализуемых?`],
+    md`**Неверно.** $A=\begin{pmatrix}1&1\\0&0\end{pmatrix}$ диагонализуема: два различных собственных значения $1$ и $0$. $B=\begin{pmatrix}-1&0\\0&0\end{pmatrix}$ диагональна. А $A+B=\begin{pmatrix}0&1\\0&0\end{pmatrix}$: $\chi=t^2$, $a_0=2$, но $g_0=2-\operatorname{rk}=1$ — не диагонализуема. Собственные базисы у $A$ и $B$ разные, поэтому сумма их не наследует.`),
+  t('e-square', 'eigen', 'true-false', STYLE,
+    md`Пусть $A\in\operatorname{Mat}_2(\mathbb R)$. Верно ли, что каждый собственный вектор матрицы $A^2$ — собственный вектор $A$? А обратное?`,
+    [md`Посмотри на поворот на $\pi/2$: чему равен его квадрат?`],
+    md`**Прямое — неверно.** Поворот $R=\begin{pmatrix}0&-1\\1&0\end{pmatrix}$: $R^2=-I_2$, у неё каждый ненулевой вектор собственный (значение $-1$), а у $R$ над $\mathbb R$ собственных векторов нет вовсе.
+
+**Обратное — верно:** если $A\mathbf v=\lambda\mathbf v$, то $A^2\mathbf v=A(\lambda\mathbf v)=\lambda^2\mathbf v$; вообще $p(A)\mathbf v=p(\lambda)\mathbf v$ для любого многочлена.`),
 ];

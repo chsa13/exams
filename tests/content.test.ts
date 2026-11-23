@@ -363,12 +363,12 @@ describe('linal-colloc', () => {
   const exam = exams.find((e) => e.id === 'linal-colloc')!;
   const units = unitsOf(exam).filter((u) => !u.aux);
 
-  it('covers the question list: 42 definitions, 0 statements, 49 proofs', () => {
-    expect(units.filter((u) => u.definition).length).toBe(42);
+  it('covers the question list: 58 definitions, 0 statements, 73 proofs', () => {
+    expect(units.filter((u) => u.definition).length).toBe(58);
     expect(units.filter((u) => u.statement && !u.proof).length).toBe(0);
-    expect(units.filter((u) => u.proof).length).toBe(49);
-    expect(units.filter((u) => u.list === 'easy').length).toBe(32);
-    expect(units.filter((u) => u.list === 'core').length).toBe(17);
+    expect(units.filter((u) => u.proof).length).toBe(73);
+    expect(units.filter((u) => u.list === 'easy').length).toBe(44);
+    expect(units.filter((u) => u.list === 'core').length).toBe(29);
   });
 
   it('mock matches the announcement', () => {

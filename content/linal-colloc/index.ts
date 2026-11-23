@@ -9,6 +9,9 @@ import { maps } from './maps';
 import { kernel } from './kernel';
 import { rank } from './rank';
 import { canonical } from './canonical';
+import { det } from './det';
+import { invariant } from './invariant';
+import { eigen } from './eigen';
 import { tasks } from './tasks';
 import { how } from './how';
 
@@ -23,7 +26,7 @@ export const linalColloc: Exam = {
   dates: ['2026-12-07', '2026-12-14'],
   when: '7–14 декабря',
   format: '40 минут подготовки + ответ, без материалов',
-  scope: 'Недели 1–10: матрицы, метод Гаусса, системы, прямые и плоскости, определители, пространства и базисы, линейные отображения, ядро и образ, ранг, канонический вид',
+  scope: 'Недели 1–13: матрицы, метод Гаусса, системы, прямые и плоскости, определители, пространства и базисы, линейные отображения, ядро и образ, ранг, канонический вид, инвариантные подпространства, собственные значения и диагонализуемость',
   levels: false,
   star: 'red',
   features: ['topics', 'cards', 'proofs', 'tasks', 'mock'],
@@ -50,6 +53,6 @@ export const linalColloc: Exam = {
   statementQuestions: false,
   sourceLabel: 'Лекция',
   how,
-  topics: [matrices, gauss, systems, geometry, determinants, spaces, maps, kernel, rank, canonical],
+  topics: [matrices, gauss, systems, geometry, determinants, spaces, maps, kernel, rank, canonical, det, invariant, eigen],
   tasks,
 };
