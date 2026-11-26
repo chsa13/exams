@@ -176,7 +176,9 @@ function ExamShell() {
             <span className="brand-sep" aria-hidden="true" />
             <NavLink to={p('/')} className="brand">
               <ExamIcon exam={exam} small />
-              {exam.short} <ExamStars exam={exam} />
+              <span className="brand-name">
+                {exam.short} <ExamStars exam={exam} />
+              </span>
             </NavLink>
           </div>
           <div className="top-tools">

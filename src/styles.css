@@ -12,7 +12,7 @@
   --muted: #5b6678;
   --border: rgb(21 26 36 / 0.1);
   --border-strong: rgb(21 26 36 / 0.28);
-  --accent: #d93c16;
+  --accent: #cc3711;
   --accent-hover: #bd3211;
   --accent-soft: #fde9e3;
   --accent-ink: #b42d0d;
@@ -138,6 +138,7 @@ a:hover {
 /* Ссылка-кнопка и ссылка-карточка ведут себя как кнопка: подчёркивания нет ни в каком состоянии. */
 .btn:hover,
 .exam-card:hover,
+.past-row:hover,
 .topic-card:hover,
 .ready-row:hover,
 .cell:hover,
@@ -175,6 +176,9 @@ h4 {
   margin: 24px 0 4px;
 }
 
+.nowrap {
+  white-space: nowrap;
+}
 .muted {
   color: var(--muted);
 }
@@ -441,6 +445,29 @@ select {
 .site-brand-quiet:hover {
   color: var(--text);
 }
+/* Название экзамена в шапке — одной строкой, длинное обрезается многоточием. На телефоне одной строки мало
+   («Коллоквиум по матану (пилот)» не помещается ни на одном): там мельче и до двух строк, многоточие — после второй. */
+.brand-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .brand-name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
+    font-size: 15px;
+    line-height: 18px;
+  }
+  /* прошедший экзамен на телефоне — без дат: строке хватает названия и предмета */
+  .past-when {
+    display: none;
+  }
+}
 /* черта между именем сайта и экзаменом */
 .brand-sep {
   flex: none;
@@ -475,13 +502,48 @@ select {
 .exam-card:active {
   transform: scale(0.995);
 }
-.exam-past {
-  background: transparent;
-  border-color: var(--border);
-  box-shadow: none;
+/* Прошедшие экзамены — строками под карточками: без шкал и подробностей, тише, с рамкой вместо белой плашки. */
+.past-list {
+  display: grid;
+  gap: 8px;
 }
-.exam-past .exam-title {
+.past-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+  transition: background-color 140ms var(--ease), border-color 140ms var(--ease);
+}
+.past-row:hover {
+  background: var(--surface);
+  border-color: var(--border-strong);
+}
+.past-row .exam-icon {
+  opacity: 0.6;
+}
+.past-name {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.past-kind {
+  font-weight: 500;
   color: var(--text-2);
+}
+.past-subject,
+.past-when {
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--muted);
+}
+.past-when {
+  flex: none;
+  font-variant-numeric: tabular-nums;
 }
 /* Значок экзамена: символ, нарисованный одной линией (src/ui/glyphs.ts), на плитке цвета курса.
    Цвет плитки — как ✱ у этого экзамена. Шрифтом — только символ, которого ещё нет в glyphs.ts. */
@@ -522,9 +584,6 @@ select {
   height: 28px;
   border-radius: var(--radius-sm);
   font-size: 16px;
-}
-.exam-past .exam-icon {
-  opacity: 0.6;
 }
 .exam-main {
   flex: 1;
@@ -597,7 +656,7 @@ select {
 }
 .badge-hot {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .badge-now {
   background: var(--ok-bg);
@@ -647,7 +706,16 @@ select {
 .nav-level {
   display: none;
 }
+/* Футер прижат к низу окна: на короткой странице он не висит посреди экрана. */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
 .main {
+  flex: 1 0 auto;
+  width: 100%;
   max-width: var(--page-w);
   margin: 0 auto;
   padding: 24px var(--gutter) 48px;
@@ -744,11 +812,6 @@ select {
 }
 .star-blue {
   --star: var(--blue-star);
-}
-.stars {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 2px;
 }
 .exam-stars {
   display: inline-flex;
@@ -1152,9 +1215,15 @@ select {
 .panel p:last-child {
   margin-bottom: 0;
 }
-.panel summary {
-  cursor: pointer;
+details.panel > summary {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  margin: -8px 0;
   font-weight: 500;
+}
+details.panel[open] > summary {
+  margin-bottom: 8px;
 }
 
 /* --- настройки экзамена: разделы-панели, ответ на действие — рядом с кнопкой --- */
@@ -1383,6 +1452,24 @@ button.danger-solid:hover {
   border-radius: var(--radius-sm);
   padding: 8px 12px;
 }
+/* Цитата в тексте (> в Markdown) — совет или замечание: отдельный блок, как примеры у вопросов. На странице
+   без плашки («Как устроено») — белый, внутри белой плашки — серый. */
+.md blockquote {
+  margin: 12px 0;
+  padding: 12px 16px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+.prose blockquote {
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.md blockquote > :first-child {
+  margin-top: 0;
+}
+.md blockquote > :last-child {
+  margin-bottom: 0;
+}
 /* Линия слева — пометка на полях тетради: типичные ошибки и подсказки. */
 .pitfalls {
   margin-top: 12px;
@@ -1433,16 +1520,61 @@ button.danger-solid:hover {
   border-collapse: collapse;
   margin: 8px 0;
 }
+/* Таблица в тексте — как таблицы сайта (.tbl): линии только между строками, подписи столбцов серым. */
+.md table {
+  width: max-content;
+}
 .md th,
 .md td {
-  border: 1px solid var(--border);
-  padding: 4px 12px;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
   text-align: left;
 }
-.md th {
-  font-weight: 500;
+.md tr:last-child td {
+  border-bottom: none;
 }
-/* Формула отдельной строкой. Переносится сама; прокрутка — только если перенести негде. */
+.md th {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+}
+/* на странице без плашки («Как устроено») таблица — на белой плашке */
+.prose table {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+/* Раскрывающийся блок (<details>: «Настройки» тренажёра, лемма в доказательстве) — со стрелкой справа, как у
+   списка и свёрнутых фильтров, а не с системным треугольником. */
+summary {
+  padding-right: 24px;
+  list-style: none;
+  cursor: pointer;
+  background-image:
+    linear-gradient(45deg, transparent calc(50% - 1px), var(--muted) calc(50% - 1px), var(--muted) calc(50% + 1px), transparent calc(50% + 1px)),
+    linear-gradient(-45deg, transparent calc(50% - 1px), var(--muted) calc(50% - 1px), var(--muted) calc(50% + 1px), transparent calc(50% + 1px));
+  background-size: 7px 7px;
+  background-position:
+    right 6px center,
+    right 0 center;
+  background-repeat: no-repeat;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+details[open] > summary {
+  background-image:
+    linear-gradient(-45deg, transparent calc(50% - 1px), var(--muted) calc(50% - 1px), var(--muted) calc(50% + 1px), transparent calc(50% + 1px)),
+    linear-gradient(45deg, transparent calc(50% - 1px), var(--muted) calc(50% - 1px), var(--muted) calc(50% + 1px), transparent calc(50% + 1px));
+}
+/* Формула отдельной строкой. На узком экране переносится сама по знакам = < ⟺; прокрутка — только если перенести
+   негде. На широком не переносится: перенос посреди выражения (внутри модуля, между слагаемыми) читается хуже,
+   длинные формулы в тексте разбиты на две $$…$$ заранее. */
+@media (min-width: 801px) {
+  .math-block .katex {
+    white-space: nowrap;
+  }
+}
 .math-block {
   display: block;
   overflow-x: auto;
@@ -1455,6 +1587,12 @@ button.danger-solid:hover {
 }
 .katex {
   font-size: 1.07em;
+}
+/* Знак препинания сразу за строчной формулой стоит внутри её последнего куска, чтобы не уйти на новую строку
+   (renderMd в Md.tsx). Выглядит как обычный текст: шрифт и размер абзаца, а не формулы. */
+.katex .math-punct {
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: calc(1em / 1.07);
 }
 
 /* --- proofs --- */
@@ -2243,9 +2381,6 @@ p.timer-over {
 .lemma {
   margin: 8px 0 12px;
 }
-.lemma summary {
-  cursor: pointer;
-}
 .lemma-links {
   margin: 8px 0 12px;
   font-size: 16px;
@@ -2270,6 +2405,30 @@ p.timer-over {
 }
 
 @media (max-width: 600px) {
+  /* Пальцем не промахнуться: поле нажатия не ниже 40px. Ссылкам и кнопкам-ссылкам — поля сверху и снизу,
+     а отрицательные отступы возвращают раскладку на место (у строчной ссылки поля строки и так не раздвигают). */
+  .foot-contact a,
+  .site-brand,
+  .brand,
+  .crumbs a,
+  .ref-meta a,
+  .pager a,
+  .plist-title a,
+  .card-foot a,
+  .card-foot button.link,
+  label.chk {
+    padding-block: 10px;
+    margin-block: -10px;
+  }
+  .site-brand,
+  .brand {
+    padding-block: 6px;
+    margin-block: -6px;
+  }
+  .seg button,
+  .tabs button {
+    min-height: 40px;
+  }
   .task-topic {
     flex: 0 0 100%;
     order: 1;
@@ -2289,9 +2448,9 @@ p.timer-over {
     width: 72px;
     height: 72px;
   }
-  /* Строчную формулу без знаков переноса прокручиваем внутри абзаца, а не всю страницу. */
-  .md p,
-  .md li {
+  /* Строчную формулу без знаков переноса прокручиваем внутри абзаца, а не всю страницу. У пункта списка так нельзя:
+     прокрутка обрезала бы номер или точку, они стоят левее пункта. */
+  .md p {
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: thin;
@@ -2650,7 +2809,8 @@ p.timer-over {
     grid-template-columns: 1fr repeat(var(--cols, 3), 112px);
   }
   /* список экзаменов — в два столбца */
-  .exam-list {
+  .exam-list,
+  .past-list {
     grid-template-columns: 1fr 1fr;
   }
 }
@@ -2736,9 +2896,14 @@ p.timer-over {
   .top-inner {
     flex-wrap: nowrap;
   }
-  /* в шапке экзамена от имени сайта остаётся значок: строка не помещает и имя, и экзамен */
+  /* В шапке экзамена от имени сайта остаётся значок, и тот без красной плитки — серый видоискатель: иначе рядом
+     стояли бы две одинаковые красные плитки, сайта и экзамена. */
   .site-brand-quiet .site-name {
     display: none;
+  }
+  .site-brand-quiet .exam-icon {
+    background: transparent;
+    color: currentColor;
   }
   .timer {
     top: 8px;

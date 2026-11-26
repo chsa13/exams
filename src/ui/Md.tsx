@@ -28,7 +28,16 @@ export function renderMd(src: string, inline = false): string {
   };
 
   let text = src.replace(/\$\$([\s\S]+?)\$\$/g, (_, t) => stash(t, true));
-  text = text.replace(/\$([^$\n]+?)\$/g, (_, t) => stash(t, false));
+  // Знак препинания сразу за формулой не отрываем от неё на новую строку. Браузер может перенести строку после
+  // любого куска формулы KaTeX (.base), поэтому знак ставим внутрь последнего куска (.math-punct в styles.css).
+  text = text.replace(/\$([^$\n]+?)\$([.,;:!?)»…]+)?/g, (_, t: string, punct?: string) => {
+    const ph = stash(t, false);
+    const i = math.length - 1;
+    const END = '</span></span></span>'; // конец последнего .base, .katex-html и .katex
+    if (punct && math[i].endsWith(END)) math[i] = `${math[i].slice(0, -END.length)}<span class="math-punct">${punct}</span>${END}`;
+    else if (punct) math[i] += punct;
+    return ph;
+  });
 
   let html = inline ? (marked.parseInline(text) as string) : (marked.parse(text) as string);
   html = html.replace(/KTXMATH(\d+)KTX/g, (_, i) => math[Number(i)]);

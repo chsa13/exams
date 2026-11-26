@@ -61,7 +61,7 @@ export function LemmaProofs({ unit }: { unit: Unit }) {
   if (!chain.length) return null;
   return (
     <div className="lemmas">
-      <div className="label">Сначала докажи {chain.length === 1 ? 'лемму' : `леммы (${chain.length})`} — без них доказательство неполное</div>
+      <div className="label">Сначала докажи {chain.length === 1 ? 'лемму — без неё' : `леммы (${chain.length}) — без них`} доказательство неполное</div>
       {chain.map((l) => (
         <details key={l.id} className="lemma" open>
           <summary>

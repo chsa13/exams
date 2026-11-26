@@ -34,7 +34,7 @@ export const sets: Topic = {
       id: 'union-intersection',
       title: 'Свойства операций объединения и пересечения',
       source: 'Лонгрид 1, теорема 1',
-      pitfalls: ['Дистрибутивность работает в обе стороны: и ∪ относительно ∩, и ∩ относительно ∪ (у чисел a + bc ≠ (a + b)(a + c)).', 'В свойстве 9 условие B ⊂ A обязательно.'],
+      pitfalls: ['Дистрибутивность работает в обе стороны: и ∪ относительно ∩, и ∩ относительно ∪ (у чисел a + bc ≠ (a + b)(a + c)).', 'В свойстве 6 условие B ⊂ A обязательно.'],
       statement: {
         level: 'basic',
         text: md`Для любых множеств $A,B,C$:
@@ -69,7 +69,8 @@ $$\text{а) }\ \overline{A\cup B}=\overline A\cap\overline B;\qquad \text{б) }\
 $$|A\cup B|=|A|+|B|-|A\cap B|,$$
 $$|A\cup B\cup C|=|A|+|B|+|C|-|A\cap B|-|A\cap C|-|B\cap C|+|A\cap B\cap C|.$$
 В общем виде для $A_1,\dots,A_n$:
-$$\Bigl|\bigcup_{i=1}^n A_i\Bigr|=\sum_{i}|A_i|-\sum_{i<j}|A_i\cap A_j|+\sum_{i<j<k}|A_i\cap A_j\cap A_k|-\dots+(-1)^{n-1}|A_1\cap\dots\cap A_n|.$$`,
+$$\Bigl|\bigcup_{i=1}^n A_i\Bigr|=\sum_{i}|A_i|-\sum_{i<j}|A_i\cap A_j|+\sum_{i<j<k}|A_i\cap A_j\cap A_k|-\dots$$
+$$\dots+(-1)^{n-1}|A_1\cap\dots\cap A_n|.$$`,
       },
     },
     {

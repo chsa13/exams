@@ -156,6 +156,21 @@ describe('styles.css follows the design rules', () => {
     for (const r of rules) if (/overflow-x:\s*auto/.test(r.body)) expect(r.selector).not.toMatch(/\.(card|task|tq|unit)\b/);
   });
 
+  it('list items never scroll: scrolling would clip their numbers and bullets', () => {
+    for (const r of rules) if (/overflow(-x)?:\s*(auto|scroll|hidden)/.test(r.body)) expect(r.selector).not.toMatch(/\bli\b/);
+  });
+
+  it('disclosure blocks use the drawn arrow, not the system triangle', () => {
+    expect(rules.find((r) => r.selector === 'summary')?.body).toMatch(/list-style:\s*none/);
+    expect(rules.find((r) => r.selector === 'summary::-webkit-details-marker')?.body).toMatch(/display:\s*none/);
+  });
+
+  it('tables in texts look like the site tables: lines between rows only', () => {
+    const cell = rules.find((r) => r.selector.replace(/\s+/g, ' ') === '.md th, .md td')!.body;
+    expect(cell).not.toMatch(/(^|[^-])border:/);
+    expect(cell).toMatch(/border-bottom:/);
+  });
+
   it('key components keep their styles', () => {
     const selectors = rules.map((r) => r.selector).join(' ');
     for (const c of ['exam-icon', 'exam-top', 'exam-main', 'exam-title', 'exam-subject', 'ring', 'meter', 'ready-list', 'ready-row', 'big-arrow', 'site-brand', 'brand-sep']) expect(selectors).toContain(`.${c}`);
@@ -217,6 +232,37 @@ describe('styles.css follows the design rules', () => {
       ]) {
         expect(contrast(token(block, fill), token(block.includes(`--${ink}:`) ? block : light, ink)), `${fill} / ${ink}`).toBeGreaterThanOrEqual(4.5);
       }
+    }
+  });
+});
+
+describe('formulas in texts', () => {
+  it('punctuation right after an inline formula goes inside it, so it never wraps onto a new line alone', async () => {
+    const { renderMd } = await import('../src/ui/Md');
+    const html = renderMd('пусть $x_n\\to a$. Тогда $y$, и $z$');
+    expect(html).toMatch(/<span class="math-punct">\.<\/span><\/span><\/span><\/span> Тогда/);
+    expect(html).toMatch(/<span class="math-punct">,<\/span>/);
+    expect(html.match(/math-punct/g)).toHaveLength(2);
+  });
+});
+
+describe('red text is readable', () => {
+  const css = readFileSync('src/styles.css', 'utf8');
+  const block = (sel: string) => css.match(new RegExp(`${sel.replace(/[[\]]/g, '\\$&')} \\{([^}]*)\\}`))![1];
+  const hex = (b: string, name: string) => b.match(new RegExp(`--${name}:\\s*(#[0-9a-f]{6})`))![1];
+  const lum = (h: string) =>
+    [1, 3, 5]
+      .map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
+      .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
+      .reduce((s, c, i) => s + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const contrast = (a: string, b: string) => {
+    const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  };
+  it('links (--accent) reach 4.5:1 on the page and on plates, in both themes', () => {
+    for (const b of [block(':root'), block(":root[data-theme='dark']")]) {
+      for (const bg of ['bg', 'surface']) expect(contrast(hex(b, 'accent'), hex(b, bg)), `accent / ${bg}`).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(hex(b, 'accent-ink'), hex(b, 'accent-soft')), 'accent-ink / accent-soft').toBeGreaterThanOrEqual(4.5);
     }
   });
 });

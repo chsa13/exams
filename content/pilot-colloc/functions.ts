@@ -37,7 +37,8 @@ export const continuity: Topic = {
 **Окрестности:** каждая окрестность $+\infty$ содержит луч $(A;+\infty]=\{x>A\}\cup\{+\infty\}$ с конечным $A$, каждая окрестность $-\infty$ — луч $[-\infty;A)$. Окрестности конечных точек — как в $\mathbb R$.
 
 **Сходимость:**
-$$x_n\to+\infty\iff\forall A\in\mathbb R\ \exists N\ \forall n\ge N:\ x_n>A;\qquad x_n\to-\infty\iff\forall A\ \exists N\ \forall n\ge N:\ x_n<A$$
+$$x_n\to+\infty\iff\forall A\in\mathbb R\ \exists N\ \forall n\ge N:\ x_n>A;$$
+$$x_n\to-\infty\iff\forall A\in\mathbb R\ \exists N\ \forall n\ge N:\ x_n<A$$
 — все члены, начиная с некоторого номера, попадают в любую заданную окрестность.`,
       },
       notes: md`$+\infty$ — точка прикосновения множества $X$ $\iff X$ не ограничено сверху. Лучи $(A;+\infty]$ — образы окрестностей $(\alpha;1]$ точки $1$ в $[-1;1]$.`,

@@ -154,7 +154,8 @@ $$a_n\sim b_n\iff a_n-b_n=o(b_n).$$
       source: 'Конспект, примеры 1.19, 1.21, 1.23, 1.24',
       statement: {
         level: 'basic',
-        text: md`$$\sqrt{n^2+10n}\sim n,\qquad\lim_{n\to\infty}\bigl(\sqrt{n^2+10n}-n\bigr)=5,\qquad n^3-5n^2-10n+7=n^3+o(n^3)\sim n^3,$$
+        text: md`$$\sqrt{n^2+10n}\sim n,\qquad\lim_{n\to\infty}\bigl(\sqrt{n^2+10n}-n\bigr)=5,$$
+$$n^3-5n^2-10n+7=n^3+o(n^3)\sim n^3,$$
 с явными оценками для всех достаточно больших номеров.`,
       },
       proof: {

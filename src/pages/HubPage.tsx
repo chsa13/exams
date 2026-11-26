@@ -37,7 +37,7 @@ export function Countdown({ exam }: { exam: Exam }) {
 }
 
 export function HubPage() {
-  // Сначала текущие и ближайшие, прошедшие — в конце, самые свежие выше.
+  // Сначала текущие и ближайшие карточками, прошедшие — отдельным списком ниже, самые свежие выше.
   const order: Record<Phase, number> = { now: 0, soon: 1, past: 2 };
   const sorted = [...exams].sort((a, b) => {
     const pa = phaseOf(a);
@@ -45,6 +45,8 @@ export function HubPage() {
     if (pa.phase !== pb.phase) return order[pa.phase] - order[pb.phase];
     return pa.phase === 'past' ? pa.days - pb.days : day(a.dates[0]) - day(b.dates[0]);
   });
+  const current = sorted.filter((e) => phaseOf(e).phase !== 'past');
+  const past = sorted.filter((e) => phaseOf(e).phase === 'past');
   return (
     <div className="page">
       <h1>Экзамены ЦУ</h1>
@@ -52,12 +54,40 @@ export function HubPage() {
         Выбери, к чему готовишься: внутри конспект теории, карточки, доказательства по шагам, задачи с решениями и пробный вариант на
         время.
       </p>
-      <div className="exam-list">
-        {sorted.map((e) => (
-          <ExamCard key={e.id} exam={e} />
-        ))}
-      </div>
+      {current.length > 0 && (
+        <div className="exam-list">
+          {current.map((e) => (
+            <ExamCard key={e.id} exam={e} />
+          ))}
+        </div>
+      )}
+      {/* Прошедшие — ниже, короткими строками без шкал: на виду остаются экзамены, к которым готовятся сейчас. */}
+      {past.length > 0 && (
+        <section className="past-exams">
+          <h2>Прошедшие</h2>
+          <div className="past-list">
+            {past.map((e) => (
+              <PastRow key={e.id} exam={e} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
+  );
+}
+
+function PastRow({ exam }: { exam: Exam }) {
+  return (
+    <Link to={`/${exam.id}`} className="past-row">
+      <ExamIcon exam={exam} small />
+      <span className="past-name">
+        <span className="past-kind">
+          {exam.kind} <ExamStars exam={exam} />
+        </span>
+        <span className="past-subject">{exam.subject}</span>
+      </span>
+      <span className="past-when">{exam.when}</span>
+    </Link>
   );
 }
 
@@ -66,9 +96,8 @@ function ExamCard({ exam }: { exam: Exam }) {
   const cat = catalogOf(exam);
   const theory = readiness(cat.visibleFacets(st.mode).map((f) => f.key), st);
   const tasks = readiness(cat.visibleTasks(st.mode).map(taskKey), st);
-  const past = phaseOf(exam).phase === 'past';
   return (
-    <Link to={`/${exam.id}`} className={`exam-card ${past ? 'exam-past' : ''}`}>
+    <Link to={`/${exam.id}`} className="exam-card">
       <ExamIcon exam={exam} />
       <div className="exam-main">
         <div className="exam-top">

@@ -113,9 +113,11 @@ $$\forall\varepsilon>0\ \ \exists\delta>0:\ \forall x:\ 0<|x-x_0|<\delta\ \ |f(x
       definition: {
         level: 'basic',
         text: md`Пусть $f$ определена на $(x_0;x_0+a)$. $A$ — **предел справа** ($\lim\limits_{x\to x_0+0}f(x)=f(x_0+0)$), если
-$$\forall\varepsilon>0\ \exists\delta>0:\ \forall x\in(x_0;x_0+\delta)\ \ f(x)\in U_\varepsilon(A)\quad(0<x-x_0<\delta\Rightarrow|f(x)-A|<\varepsilon).$$
+$$\forall\varepsilon>0\ \exists\delta>0:\ \forall x\in(x_0;x_0+\delta)\ \ f(x)\in U_\varepsilon(A)$$
+(то есть $0<x-x_0<\delta\Rightarrow|f(x)-A|<\varepsilon$).
 Пусть $f$ определена на $(x_0-a;x_0)$. $A$ — **предел слева** ($\lim\limits_{x\to x_0-0}f(x)=f(x_0-0)$), если
-$$\forall\varepsilon>0\ \exists\delta>0:\ \forall x\in(x_0-\delta;x_0)\ \ f(x)\in U_\varepsilon(A)\quad(-\delta<x-x_0<0\Rightarrow|f(x)-A|<\varepsilon).$$`,
+$$\forall\varepsilon>0\ \exists\delta>0:\ \forall x\in(x_0-\delta;x_0)\ \ f(x)\in U_\varepsilon(A)$$
+(то есть $-\delta<x-x_0<0\Rightarrow|f(x)-A|<\varepsilon$).`,
       },
     },
     {

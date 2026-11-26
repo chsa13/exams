@@ -106,7 +106,10 @@ export function ProofPage() {
       <UsesLinks unit={unit} />
       <div className="panel">
         <div className="small muted">
-          Как ты знаешь это доказательство? Сейчас:{'\u00a0'}<StatusDot status={st.items[key]?.status ?? 'new'} />
+          Как ты знаешь это доказательство?{' '}
+          <span className="nowrap">
+            Сейчас: <StatusDot status={st.items[key]?.status ?? 'new'} />
+          </span>
         </div>
         <Grade itemKey={key} current={st.items[key]?.status} alsoKeys={cat.facetByKey.has(`${unit.id}:statement`) ? [`${unit.id}:statement`] : []} />
       </div>

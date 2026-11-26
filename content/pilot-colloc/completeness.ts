@@ -83,7 +83,8 @@ $$\forall\varepsilon>0\ \exists N\ \forall m,n\ge N:\ |x_m-x_n|<\varepsilon.$$
 **Частичный предел** — предел какой-нибудь подпоследовательности.
 
 **Верхний и нижний пределы ограниченной** $(a_n)$ — через грани хвостов:
-$$M_k=\sup\{a_n: n>k\},\quad m_k=\inf\{a_n: n>k\},\qquad \limsup_{n\to\infty}a_n=\lim_{k\to\infty}M_k,\quad\liminf_{n\to\infty}a_n=\lim_{k\to\infty}m_k.$$`,
+$$M_k=\sup\{a_n: n>k\},\qquad m_k=\inf\{a_n: n>k\},$$
+$$\limsup_{n\to\infty}a_n=\lim_{k\to\infty}M_k,\qquad\liminf_{n\to\infty}a_n=\lim_{k\to\infty}m_k.$$`,
       },
       notes: md`$(-1)^n$: частичные пределы $\pm1$, $\limsup=1$, $\liminf=-1$. $(1,2,3,1,2,3,\dots)$: частичные пределы $\{1,2,3\}$. $\liminf$ и $\limsup$ — наименьший и наибольший частичные пределы.
 

@@ -25,6 +25,8 @@ const ASK: Record<Kind, string> = {
 /** Фильтр по статусу: порядок как у кнопок оценки, «новое» в конце. */
 const STATUSES: Status[] = ['weak', 'shaky', 'known', 'new'];
 const WEAK: Status[] = ['weak', 'shaky'];
+/** Порядок, в котором карточки учат: по нему выбираем статус карточки из двух частей. */
+const STUDY_ORDER: Status[] = ['weak', 'new', 'shaky', 'known'];
 
 /** Что спросить по карточке: у теоремы с доказательством — формулировку и доказательство сразу. */
 function askFor(cat: Catalog, f: Facet): string {
@@ -78,22 +80,25 @@ export function CardsPage() {
       (f) => kinds.includes(f.kind) && (!inTopics.length || inTopics.includes(f.topic.id)) && !(f.kind === 'statement' && withProof.has(f.unit.id)),
     );
   };
-  /** Статусы карточки; у теоремы «формулировка + доказательство» — обеих частей, подходит любая. */
-  const cardStatuses = (s: typeof st, f: Facet): Status[] => {
+  /** Статус карточки — один: у теоремы «формулировка + доказательство» берём часть, которую учить раньше
+   *  (не знаю → новое → частично → знаю). Так каждая карточка попадает ровно в один счётчик и сумма счётчиков
+   *  равна числу карточек. */
+  const cardStatus = (s: typeof st, f: Facet): Status => {
     const of = (key: string) => s.items[key]?.status ?? 'new';
-    return isCombined(cat, f) ? [of(f.key), of(`${f.unit.id}:statement`)] : [of(f.key)];
+    if (!isCombined(cat, f)) return of(f.key);
+    const parts = [of(f.key), of(`${f.unit.id}:statement`)];
+    return STUDY_ORDER.find((x) => parts.includes(x))!;
   };
   const buildQueue = (): string[] => {
     const s = store.get();
     let pool = basePool(s);
-    if (!allStatuses) pool = pool.filter((f) => cardStatuses(s, f).some((x) => statuses.includes(x)));
+    if (!allStatuses) pool = pool.filter((f) => statuses.includes(cardStatus(s, f)));
     return orderByPriority(pool, (f) => f.key, s).map((f) => f.key);
   };
   const base = basePool(st);
-  const statusCount = (x: Status) => base.filter((f) => cardStatuses(st, f).includes(x)).length;
+  const statusCount = (x: Status) => base.filter((f) => cardStatus(st, f) === x).length;
   /** Сколько карточек в теме под вид и статусы — подпись в списке тем. */
-  const topicCount = (id: string) =>
-    basePool(st, [id]).filter((f) => allStatuses || cardStatuses(st, f).some((x) => statuses.includes(x))).length;
+  const topicCount = (id: string) => basePool(st, [id]).filter((f) => allStatuses || statuses.includes(cardStatus(st, f))).length;
   const fresh = (): CardSession => ({ fk: filterKey, keys: buildQueue(), pos: 0, step: 0, updated: Date.now() });
   const restoreOrFresh = (): CardSession => loadSession(examId, filterKey) ?? fresh();
 

@@ -215,6 +215,8 @@ interface Tip {
   keys: string[];
   to: string;
   at: DOMRect;
+  /** Края таблицы: подсказка не выходит за них, а значит и за поля страницы. */
+  bounds: { left: number; right: number };
   touch: boolean;
 }
 interface TipApi {
@@ -283,7 +285,10 @@ function Cell({ id, keys, to }: { id: string; keys: string[]; to: string }) {
   const pointer = useRef('mouse');
   if (!keys.length) return <div className="cell cell-empty" />;
   const r = readiness(keys, st);
-  const tipOf = (el: HTMLElement, touch: boolean): Tip => ({ id, keys, to, touch, at: el.getBoundingClientRect() });
+  const tipOf = (el: HTMLElement, touch: boolean): Tip => {
+    const table = (el.closest('.grid-table') ?? el).getBoundingClientRect();
+    return { id, keys, to, touch, at: el.getBoundingClientRect(), bounds: { left: table.left, right: table.right } };
+  };
   const show = (el: HTMLElement, touch: boolean) => tips?.show(tipOf(el, touch));
   return (
     <Link
@@ -397,7 +402,9 @@ function CellTip({ tip, onEnter, onLeave, onClose }: { tip: Tip; onEnter: () => 
     else setPos({ top: at.bottom + GAP, maxHeight: Math.max(below, 160) });
   }, [at, tip.keys]);
   const left = tip.keys.filter((k) => (st.items[k]?.status ?? 'new') !== 'known').length;
-  const x = Math.min(Math.max(GAP, at.left + at.width / 2 - TIP_W / 2), document.documentElement.clientWidth - TIP_W - GAP * 2);
+  // По центру под ячейкой, но в пределах таблицы — подсказка у крайнего столбца не уходит к краю окна.
+  const { bounds } = tip;
+  const x = Math.min(Math.max(bounds.left, GAP, at.left + at.width / 2 - TIP_W / 2), Math.min(bounds.right, document.documentElement.clientWidth - GAP) - TIP_W);
   return createPortal(
     <div
       ref={ref}

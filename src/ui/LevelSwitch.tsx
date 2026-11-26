@@ -49,16 +49,6 @@ export function LevelBadge({ level }: { level: Level }) {
   return level === 'basic' ? <Star scale="red" /> : <Star scale="black" />;
 }
 
-export function Stars({ scales }: { scales: Scale[] }) {
-  return (
-    <span className="stars">
-      {scales.map((s) => (
-        <Star key={s} scale={s} />
-      ))}
-    </span>
-  );
-}
-
 /** «🔴+⚫» — основной вместе с продвинутым. */
 function RedPlusBlack() {
   return (
@@ -90,12 +80,14 @@ export function LevelMark({ level }: { level: Level }) {
 }
 
 /**
- * Значок у задачи или вопроса билета: шкалы зачёта, а у экзамена без уровней — звёздочка сложности задачи
- * (как в вариантах контрольной), если её нет — звёздочка курса.
+ * Значок у задачи или вопроса билета. При двух уровнях — одна звёздочка уровня, как у вопросов (LevelMark):
+ * задача основного уровня (в шкале red) — красная, только продвинутого — чёрная. Две звёздочки рядом читались бы как
+ * «Продвинутый» (✱+✱ в переключателе). У экзамена без уровней — звёздочка сложности задачи (как в вариантах
+ * контрольной), если её нет — звёздочка курса.
  */
 export function ScaleMark({ scales, star }: { scales: Scale[]; star?: StarColor }) {
   const { exam } = useCat();
-  if (exam.levels) return <Stars scales={scales} />;
+  if (exam.levels) return <LevelBadge level={scales.includes('red') ? 'basic' : 'advanced'} />;
   if (star) return <Star scale={star} title={TASK_STAR_TITLE[star]} />;
   return exam.star ? <Star scale={exam.star} /> : null;
 }

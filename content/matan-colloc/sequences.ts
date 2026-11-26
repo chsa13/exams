@@ -28,7 +28,8 @@ export const sequences: Topic = {
       definition: {
         level: 'basic',
         text: md`Точная верхняя грань последовательности — точная верхняя грань множества её значений:
-$$\sup\{x_n\}=M\in\mathbb R\iff\begin{cases}\forall n\in\mathbb N\ \ x_n\le M & (M\text{ — верхняя грань}),\\ \forall M'<M\ \ \exists\, n\in\mathbb N:\ x_n>M' & (\text{меньшее число — уже не верхняя грань}).\end{cases}$$`,
+$$\sup\{x_n\}=M\in\mathbb R\iff\begin{cases}\forall n\in\mathbb N\ \ x_n\le M,\\ \forall M'<M\ \ \exists\, n\in\mathbb N:\ x_n>M'.\end{cases}$$
+Первое условие: $M$ — верхняя грань; второе: любое меньшее число — уже не верхняя грань.`,
       },
       notes: md`Второе условие равносильно: $\forall\varepsilon>0\ \exists n:\ x_n>M-\varepsilon$. Аналогично $\inf\{x_n\}=m\iff \forall n\ x_n\ge m$ и $\forall m'>m\ \exists n:\ x_n<m'$.`,
     },

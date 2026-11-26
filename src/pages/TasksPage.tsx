@@ -14,6 +14,17 @@ import { TopicPicker, topicsLabel } from '../ui/TopicPicker';
 import { MultiSeg } from '../ui/MultiSeg';
 import { SideFilters } from '../ui/Menu';
 
+type TaskOrder = 'priority' | 'topics';
+const ORDER_LABEL: Record<TaskOrder, string> = { priority: 'Сначала слабые', topics: 'По темам' };
+const ORDER_KEY = 'exams:tasks-order';
+function loadOrder(): TaskOrder {
+  try {
+    return localStorage.getItem(ORDER_KEY) === 'topics' ? 'topics' : 'priority';
+  } catch {
+    return 'priority';
+  }
+}
+
 export function TasksPage() {
   const cat = useCat();
   const store = useStore();
@@ -31,6 +42,17 @@ export function TasksPage() {
   const topics = visibleTopics.filter((t) => topicParam.includes(t.id)).map((t) => t.id);
   const topic = topics.join(',');
   const skill = sp.get('skill') ?? '';
+  // Порядок банка: «Сначала слабые» — очередь по приоритету, перемешивается при каждом открытии;
+  // «По темам» — как в справочнике, номера задач не меняются. Выбор запоминается в браузере.
+  const [order, setOrderState] = useState<TaskOrder>(loadOrder);
+  const setOrder = (o: TaskOrder) => {
+    setOrderState(o);
+    try {
+      localStorage.setItem(ORDER_KEY, o);
+    } catch {
+      /* не критично */
+    }
+  };
   // `?task=<id>` — переход к задаче (из подсказки на карте готовности): прокручиваем к ней и подсвечиваем.
   const focus = sp.get('task');
   useEffect(() => {
@@ -56,10 +78,14 @@ export function TasksPage() {
   const list = useMemo(() => {
     const s = store.get();
     const pool = byTypeSkill(s.mode).filter((t) => !topics.length || topics.includes(t.topic));
+    if (order === 'topics') {
+      const rank = new Map(cat.topics.map((t, i) => [t.id, i]));
+      return pool.map((t, i) => [t, i] as const).sort(([a, i], [b, j]) => rank.get(a.topic)! - rank.get(b.topic)! || i - j).map(([t]) => t);
+    }
     return orderByPriority(pool, taskKey, s);
     // порядок фиксируем на фильтр, чтобы список не прыгал после оценки
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, topic, skill, st.mode, cat]);
+  }, [type, topic, skill, order, st.mode, cat]);
   const topicCount = (id: string) => byTypeSkill(st.mode).filter((t) => t.topic === id).length;
   /** Сколько задач этого типа в выбранных темах — число у пункта переключателя. */
   const typeCount = (x: TaskType) => bySkill(st.mode).filter((t) => t.type === x && (!topics.length || topics.includes(t.topic))).length;
@@ -98,6 +124,14 @@ export function TasksPage() {
             ))}
           </select>
         )}
+        <span className="side-label">Порядок</span>
+        <div className="seg seg-order" role="radiogroup" aria-label="Порядок">
+          {(Object.keys(ORDER_LABEL) as TaskOrder[]).map((o) => (
+            <button key={o} role="radio" aria-checked={order === o} className={order === o ? 'on' : ''} onClick={() => setOrder(o)}>
+              {ORDER_LABEL[o]}
+            </button>
+          ))}
+        </div>
         <span className="muted small side-count">{count(list.length, 'задача', 'задачи', 'задач')}</span>
       </div>
       </SideFilters>

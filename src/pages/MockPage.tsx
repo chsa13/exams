@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { KIND_LABEL, TASK_TYPE_LABEL, type TicketLayout } from '../content/schema';
 import { taskKey, type Catalog } from '../engine/catalog';
@@ -54,13 +54,16 @@ function persist(examId: string, s: Saved | null) {
   }
 }
 
-function useNow(active: boolean) {
+/** Текущее время для таймера. С началом нового этапа (key) берём его сразу, ещё до отрисовки: иначе первую секунду
+ *  таймер показывал бы больше полного времени — «45:01», а после долгого чтения вступления и «46:00». */
+function useNow(active: boolean, key: string) {
   const [now, setNow] = useState(Date.now());
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!active) return;
+    setNow(Date.now());
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
-  }, [active]);
+  }, [active, key]);
   return now;
 }
 
@@ -91,7 +94,7 @@ export function MockPage() {
   const [started, setStarted] = useState(restored?.s.started ?? 0);
   const [answerStarted, setAnswerStarted] = useState(restored?.s.answerStarted ?? 0);
   const [scores, setScores] = useState<Record<string, number>>(restored?.s.scores ?? {});
-  const now = useNow(stage === 'prep' || (stage === 'answer' && ANSWER_MIN !== null));
+  const now = useNow(stage === 'prep' || (stage === 'answer' && ANSWER_MIN !== null), stage);
   // `?attempt=<дата>` — разбор прошлого пробного варианта из истории.
   const [sp] = useSearchParams();
   const attempt = st.mocks.find((m) => String(m.date) === sp.get('attempt') && m.qs?.length);
@@ -602,7 +605,11 @@ function questionTitle(cat: Catalog, q: TicketQuestion): string {
   if (q.task) return '';
   const f = q.facet!;
   const lemmas = f.kind === 'proof' ? cat.lemmaChain(f.unit) : [];
-  return lemmas.length ? `${f.unit.title} (вместе с ${lemmas.length === 1 ? 'леммой' : 'леммами'}: ${lemmas.map((l) => l.title).join('; ')})` : f.unit.title;
+  if (!lemmas.length) return f.unit.title;
+  // «вместе с леммой о непересекающихся окрестностях», а не «с леммой: Лемма о …»; у остальных — название в кавычках
+  if (lemmas.length === 1 && /^Лемма /.test(lemmas[0].title)) return `${f.unit.title} (вместе с леммой ${lemmas[0].title.slice('Лемма '.length)})`;
+  const names = lemmas.map((l) => `«${l.title}»`);
+  return `${f.unit.title} (вместе с ${lemmas.length === 1 ? 'леммой' : 'леммами'} ${names.slice(0, -1).join(', ')}${names.length > 1 ? ' и ' : ''}${names.at(-1)})`;
 }
 
 function TicketList({ qs }: { qs: TicketQuestion[] }) {
